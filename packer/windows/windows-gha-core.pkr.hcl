@@ -89,6 +89,16 @@ source "proxmox-iso" "win_gha_core" {
   sockets = 1
   memory  = 8192
 
+  # UEFI (OVMF) — autounattend.xml uses a GPT layout (EFI/MSR/WinRE partitions), which
+  # only applies under UEFI. Without this the VM boots legacy SeaBIOS and Windows Setup
+  # fails to apply <DiskConfiguration>.
+  bios = "ovmf"
+  efi_config {
+    efi_storage_pool  = var.storage_pool
+    efi_type          = "4m"
+    pre_enrolled_keys = true
+  }
+
   scsi_controller = "virtio-scsi-single"
 
   disks {

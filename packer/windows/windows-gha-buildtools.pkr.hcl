@@ -45,6 +45,14 @@ source "proxmox-iso" "win_gha_buildtools" {
   sockets = 1
   memory  = 16384
 
+  # UEFI (OVMF) — autounattend.xml uses a GPT layout; see windows-gha-core for details.
+  bios = "ovmf"
+  efi_config {
+    efi_storage_pool  = var.storage_pool
+    efi_type          = "4m"
+    pre_enrolled_keys = true
+  }
+
   scsi_controller = "virtio-scsi-single"
 
   disks {
