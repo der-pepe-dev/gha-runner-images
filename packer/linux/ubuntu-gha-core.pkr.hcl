@@ -37,6 +37,11 @@ variable "ssh_password" {
   default     = "ChangeMe_GHA_2026"
   description = "Build user password. MUST match the hashed password in cloud-init/user-data. Replace both for production."
 }
+variable "install_updates" {
+  type        = bool
+  default     = true
+  description = "Run apt dist-upgrade during the build. Set false for fast test builds."
+}
 
 source "proxmox-iso" "ubuntu_gha_core" {
   proxmox_url              = var.proxmox_url
@@ -106,6 +111,18 @@ source "proxmox-iso" "ubuntu_gha_core" {
 
 build {
   sources = ["source.proxmox-iso.ubuntu_gha_core"]
+
+  # Patch the image (toggle with install_updates).
+  dynamic "provisioner" {
+    for_each = var.install_updates ? [1] : []
+    labels   = ["shell"]
+    content {
+      inline = [
+        "sudo apt-get update",
+        "sudo DEBIAN_FRONTEND=noninteractive apt-get -y dist-upgrade",
+      ]
+    }
+  }
 
   # Generalize the image so clones get unique identity (machine-id, ssh host keys).
   provisioner "shell" {
