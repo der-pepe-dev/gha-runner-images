@@ -4,6 +4,10 @@ packer {
       source  = "github.com/hashicorp/proxmox"
       version = ">= 1.2.3"
     }
+    windows-update = {
+      source  = "github.com/rgl/windows-update"
+      version = ">= 0.14.1"
+    }
   }
 }
 
@@ -22,7 +26,12 @@ variable "iso_storage_pool" {
 }
 variable "virtio_iso" {
   default     = "cephfs:iso/virtio-win.iso"
-  description = "virtio-win ISO volume; mounted so the QEMU guest agent installs at first boot (builder needs it to discover the VM IP)."
+  description = "virtio-win ISO volume; vioscsi injected into WinPE for the boot disk, guest agent + remaining drivers install at first boot."
+}
+variable "install_updates" {
+  type        = bool
+  default     = true
+  description = "Run Windows Update during the build (adds significant time). Set false for fast test builds."
 }
 variable "bridge" { default = "vmbr0" }
 variable "vm_name" { default = "tmpl-win-gha-buildtools" }
@@ -59,18 +68,18 @@ source "proxmox-iso" "win_gha_buildtools" {
 
   scsi_controller = "virtio-scsi-single"
 
-  # SATA boot disk so Windows Setup sees it without virtio drivers; see
+  # virtio-scsi boot disk (vioscsi injected into WinPE via autounattend); see
   # windows-gha-core for details.
   disks {
-    type         = "sata"
+    type         = "scsi"
     disk_size    = "128G"
     storage_pool = var.storage_pool
     format       = "raw"
   }
 
-  # e1000 NIC so Windows has network without virtio drivers; see windows-gha-core.
+  # virtio NIC (netkvm installed at FirstLogon before WinRM); see windows-gha-core.
   network_adapters {
-    model  = "e1000"
+    model  = "virtio"
     bridge = var.bridge
   }
 
@@ -117,6 +126,19 @@ source "proxmox-iso" "win_gha_buildtools" {
 
 build {
   sources = ["source.proxmox-iso.win_gha_buildtools"]
+
+  # Windows Update (toggle with install_updates); see windows-gha-core.
+  dynamic "provisioner" {
+    for_each = var.install_updates ? [1] : []
+    labels   = ["windows-update"]
+    content {
+      search_criteria = "IsInstalled=0"
+      filters = [
+        "exclude:$_.Title -like '*Preview*'",
+        "include:$true",
+      ]
+    }
+  }
 
   # Guest agent + virtio drivers install at FirstLogon (autounattend); only cleanup
   # runs here. See windows-gha-core.

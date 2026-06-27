@@ -4,6 +4,10 @@ packer {
       source  = "github.com/hashicorp/proxmox"
       version = ">= 1.2.3"
     }
+    windows-update = {
+      source  = "github.com/rgl/windows-update"
+      version = ">= 0.14.1"
+    }
   }
 }
 
@@ -50,7 +54,13 @@ variable "iso_storage_pool" {
 variable "virtio_iso" {
   type        = string
   default     = "cephfs:iso/virtio-win.iso"
-  description = "virtio-win ISO volume. Mounted at build time so the QEMU guest agent installs at first boot — the builder needs the agent to discover the VM IP for WinRM."
+  description = "virtio-win ISO volume. Mounted at build time: vioscsi is injected into WinPE for the boot disk, and the guest agent + remaining virtio drivers install at first boot."
+}
+
+variable "install_updates" {
+  type        = bool
+  default     = true
+  description = "Run Windows Update during the build (adds significant time). Set false for fast test builds."
 }
 
 variable "bridge" {
@@ -107,22 +117,19 @@ source "proxmox-iso" "win_gha_core" {
 
   scsi_controller = "virtio-scsi-single"
 
-  # SATA boot disk: Windows Setup (WinPE) has the inbox AHCI driver but NOT the
-  # virtio-scsi driver, so a scsi/virtio disk is invisible during install and
-  # <DiskConfiguration> fails. SATA installs with no driver injection. (For virtio
-  # performance later, mount the virtio-win ISO and add a WinPE DriverPaths entry.)
+  # virtio-scsi boot disk. Works because autounattend injects the vioscsi driver into
+  # WinPE (Microsoft-Windows-PnpCustomizationsWinPE DriverPaths) so Setup sees the disk.
   disks {
-    type         = "sata"
+    type         = "scsi"
     disk_size    = "80G"
     storage_pool = var.storage_pool
     format       = "raw"
   }
 
-  # e1000: Windows has an inbox Intel E1000 driver, but not the virtio NetKVM driver,
-  # so a virtio NIC would have no network after a clean install and WinRM could never
-  # connect. e1000 works driver-free. (Switch to virtio + NetKVM later for throughput.)
+  # virtio NIC. netkvm is installed at FirstLogon (pnputil) before enable-winrm, so the
+  # network is up by the time the builder needs WinRM.
   network_adapters {
-    model  = "e1000"
+    model  = "virtio"
     bridge = var.bridge
   }
 
@@ -172,6 +179,20 @@ source "proxmox-iso" "win_gha_core" {
 
 build {
   sources = ["source.proxmox-iso.win_gha_core"]
+
+  # Windows Update (toggle with install_updates). The rgl/windows-update provisioner
+  # handles the search/install/reboot loop until no updates remain.
+  dynamic "provisioner" {
+    for_each = var.install_updates ? [1] : []
+    labels   = ["windows-update"]
+    content {
+      search_criteria = "IsInstalled=0"
+      filters = [
+        "exclude:$_.Title -like '*Preview*'",
+        "include:$true",
+      ]
+    }
+  }
 
   # The guest agent + virtio drivers are installed at FirstLogon (autounattend) — the
   # builder needs the agent up to discover the VM IP for WinRM, well before provisioners
