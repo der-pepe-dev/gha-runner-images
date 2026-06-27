@@ -62,6 +62,9 @@ pveum acl modify / -user packer@pve -role PVEVMAdmin
 # PVEDatastoreAdmin (not …User): uploading the generated build CD ISO needs
 # Datastore.AllocateTemplate, which PVEDatastoreUser lacks.
 pveum acl modify /storage -user packer@pve -role PVEDatastoreAdmin
+# SDN networking: if the VM bridge is SDN-managed (the bridge does not appear in
+# /nodes/<node>/network, only in VM net configs), attaching a NIC needs SDN.Use:
+pveum acl modify /sdn -user packer@pve -role PVESDNUser
 
 # Token (privsep 0 = token inherits the user's privileges):
 pveum user token add packer@pve packer --privsep 0

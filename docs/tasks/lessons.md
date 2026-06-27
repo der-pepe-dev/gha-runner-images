@@ -5,6 +5,28 @@ correction or hard-won lesson. Newest first.
 
 <!-- - YYYY-MM-DD: <what went wrong> -> <the rule to follow next time> -->
 
+### 2026-06-27: SDN-managed bridges — hidden from /network, need SDN.Use
+
+**What went wrong:** `vmbr0` never appeared in `/nodes/<node>/network` (only physical
+NICs did), and `packer build` failed with `403 ... (/sdn/zones/localnetwork/vmbr0,
+SDN.Use)`. The bridge is **SDN-managed** (zone `localnetwork`), so it lives under
+`/sdn`, not the node network list.
+
+**Rule:** Detect the bridge from an existing VM's `net0` (discover-proxmox.sh does this),
+not just `/nodes/<node>/network`. For the Packer token on an SDN cluster, grant
+`PVESDNUser` on `/sdn` (`SDN.Use`) in addition to `PVEVMAdmin` + `PVEDatastoreAdmin`.
+
+### 2026-06-27: Packer build token privileges (Proxmox)
+
+**What went wrong:** Hit a sequence of build failures — `401` (token secret shadowed by a
+var-file `proxmox_token = "CHANGE_ME"`), `403 Datastore.AllocateTemplate` (PVEDatastoreUser
+too weak to upload the build CD ISO), `403 SDN.Use`.
+
+**Rule:** Full Packer build grant = `PVEVMAdmin` on `/`, **`PVEDatastoreAdmin`** on
+`/storage` (AllocateTemplate, not just …User/AllocateSpace), and `PVESDNUser` on `/sdn`
+if networking is SDN. Pass the token secret with `-var "proxmox_token=$PROXMOX_TOKEN"`
+(a `-var-file` value overrides `PKR_VAR_*`), never as a CHANGE_ME line in the var-file.
+
 ### 2026-06-27: `proxmox-iso` has no `shutdown_command`; validate Packer from its dir
 
 **What went wrong:** The Windows templates carried `shutdown_command = "...cleanup.ps1"`,
