@@ -23,7 +23,10 @@ Write-Host 'Clearing temporary folders...'
 $paths = @($env:TEMP, 'C:\Windows\Temp')
 foreach ($path in $paths) {
     if (Test-Path $path) {
-        Get-ChildItem -Path $path -Force -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        # Exclude packer-* so we don't delete the env-vars helper Packer is still using
+        # for this very provisioner session (otherwise it logs a cosmetic not-found error).
+        Get-ChildItem -Path $path -Force -Exclude 'packer-*' -ErrorAction SilentlyContinue |
+            Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
     }
 }
 
