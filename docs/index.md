@@ -29,7 +29,7 @@ Repository: `https://github.com/der-pepe-dev/gha-runner-images`
 
 ## Decisions
 
-- [[decisions/0001-self-sustaining-symmetric-orchestrators]] — target fleet architecture
+- [[decisions/0001-self-sustaining-fleet]] — target fleet architecture
 
 ## Task tracking
 

@@ -1,8 +1,8 @@
-# Roadmap: self-sustaining symmetric orchestrators
+# Roadmap: self-sustaining fleet (tiny orchestrators + HA builder)
 
-Target architecture: see [[decisions/0001-self-sustaining-symmetric-orchestrators]].
-Goal: after bootstrap, WSL is dev-only; each node's orchestrator owns its runners AND
-its template regeneration.
+Target architecture: see [[decisions/0001-self-sustaining-fleet]].
+Goal: after bootstrap, WSL is dev-only. 3 tiny per-node orchestrators own runner
+lifecycle; 1 HA builder owns image regeneration (single cluster-wide template).
 
 ## Phase 0 — Foundations (DONE)
 
@@ -25,20 +25,20 @@ its template regeneration.
       start the VM.
 - [ ] Confirm the per-node reconcile timer brings a used ephemeral runner back to clean.
 
-## Phase 3 — Orchestrator as node agent (provisioning)
+## Phase 3 — Provision the 3 tiny orchestrators
 
-- [ ] Orchestrator provisioning playbook/script: install Packer + git checkout of this
-      repo + build tokens (Proxmox build-priv token, build password) + CephFS ISO access
-      on each orchestrator LXC. Size LXC ~1-2 GB (Packer only drives the API).
-- [ ] Decide token storage/rotation on the LXC (EnvironmentFile, least privilege).
+- [ ] Provisioning script/playbook for each per-node orchestrator LXC: config
+      (`node.local.env`), secrets EnvironmentFile (Proxmox + GitHub tokens, least
+      privilege), and the reconcile service+timer. Stays tiny (bash + curl + jq).
 
-## Phase 4 — Self-regenerating images (orchestrator job #2)
+## Phase 4 — Provision the HA builder (self-regenerating images)
 
-- [ ] Per-node template identity in the Packer builds (vm_name/template VMID per node)
-      so the 3 orchestrators don't collide on shared Ceph.
-- [ ] systemd timer per orchestrator: `git pull` + `packer build` on a fixed,
-      staggered schedule (~60-90 days). Re-point the eval-age checker as a safety net.
-- [ ] Runner-reset clones from the node's own template VMID.
+- [ ] Builder LXC (~1-2 GB): Packer + git checkout of this repo + build tokens (Proxmox
+      build-priv token, build password) + CephFS ISO access. Rootfs on Ceph.
+- [ ] Put the builder in a Proxmox **HA group** so a node failure relocates it.
+- [ ] systemd timer on the builder: `git pull` + `packer build` of the single
+      cluster-wide template per OS, on a fixed schedule (~60-90 days). Eval-age checker as
+      a safety net.
 
 ## Phase 5 — Confirm self-sustaining
 
