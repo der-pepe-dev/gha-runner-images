@@ -55,15 +55,18 @@ source "proxmox-iso" "win_gha_buildtools" {
 
   scsi_controller = "virtio-scsi-single"
 
+  # SATA boot disk so Windows Setup sees it without virtio drivers; see
+  # windows-gha-core for details.
   disks {
-    type         = "scsi"
+    type         = "sata"
     disk_size    = "128G"
     storage_pool = var.storage_pool
     format       = "raw"
   }
 
+  # e1000 NIC so Windows has network without virtio drivers; see windows-gha-core.
   network_adapters {
-    model  = "virtio"
+    model  = "e1000"
     bridge = var.bridge
   }
 

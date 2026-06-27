@@ -101,15 +101,22 @@ source "proxmox-iso" "win_gha_core" {
 
   scsi_controller = "virtio-scsi-single"
 
+  # SATA boot disk: Windows Setup (WinPE) has the inbox AHCI driver but NOT the
+  # virtio-scsi driver, so a scsi/virtio disk is invisible during install and
+  # <DiskConfiguration> fails. SATA installs with no driver injection. (For virtio
+  # performance later, mount the virtio-win ISO and add a WinPE DriverPaths entry.)
   disks {
-    type         = "scsi"
+    type         = "sata"
     disk_size    = "80G"
     storage_pool = var.storage_pool
     format       = "raw"
   }
 
+  # e1000: Windows has an inbox Intel E1000 driver, but not the virtio NetKVM driver,
+  # so a virtio NIC would have no network after a clean install and WinRM could never
+  # connect. e1000 works driver-free. (Switch to virtio + NetKVM later for throughput.)
   network_adapters {
-    model  = "virtio"
+    model  = "e1000"
     bridge = var.bridge
   }
 
