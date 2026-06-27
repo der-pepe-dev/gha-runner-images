@@ -67,8 +67,20 @@ the Proxmox management network.
 
 ## Configure the build for Ceph
 
-The committed examples use per-node `local-lvm` + `local:iso`. Override them for Ceph in a
-**gitignored** local var file (`*.pkrvars.hcl` / `*.auto.pkrvars.hcl` are gitignored):
+**Fast path — auto-detect.** `scripts/discover-proxmox.sh` queries the cluster and writes
+`packer/{windows,linux}/local.pkrvars.hcl` with the right storage_pool (prefers Ceph rbd),
+iso_storage_pool (prefers cephfs), iso_file, bridge, and node already filled:
+
+```bash
+PROXMOX_URL=https://pve01:8006/api2/json \
+PROXMOX_TOKEN_ID='packer@pve!packer' PROXMOX_TOKEN='...' \
+  scripts/discover-proxmox.sh            # add --include-token to bake the token in
+```
+
+It leaves the API token and `winrm_password` as `CHANGE_ME` placeholders. Review the
+files, then build. Or do it by hand — the committed examples use per-node `local-lvm` +
+`local:iso`; override for Ceph in a **gitignored** local var file
+(`*.pkrvars.hcl` / `*.auto.pkrvars.hcl` are gitignored):
 
 ```hcl
 # packer/windows/local.pkrvars.hcl   (gitignored; do not commit)
