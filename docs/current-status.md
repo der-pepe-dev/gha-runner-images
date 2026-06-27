@@ -24,6 +24,14 @@ orchestrator scripts are scaffolds with placeholder Proxmox/injection logic.
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-06-27: **First runner registered (Phase 1 done).** Full pipeline proven:
+  Linux template (107) → full clone → Ansible `linux-register-runner.yml` (github_runner
+  role, org scope) → gha-linux01 registered to der-pepe-dev as a systemd service runner.
+  Fixes that got it working: group_vars moved to inventory/group_vars (so playbooks load
+  it), ansible.cfg yaml callback → default+result_format, force ANSIBLE_CONFIG on WSL
+  /mnt (world-writable cfg ignored), Linux template self-regenerates SSH host keys on
+  clone, register playbooks no longer override github_owner, accept 201 from
+  registration-token. Next: Phase 2 — orchestrator snapshot-rollback loop.
 - 2026-06-27: **Windows golden template built + hardened** (`tmpl-win-gha-core`, VMID 106)
   on the Ceph-backed pve1/2/3 cluster. Now full **virtio** (virtio-scsi disk via vioscsi
   WinPE injection + virtio NIC), **Windows Update** baked in (toggleable `install_updates`,

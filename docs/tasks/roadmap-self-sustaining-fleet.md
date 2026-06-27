@@ -11,9 +11,9 @@ lifecycle; 1 HA builder owns image regeneration (single cluster-wide template).
 - [x] Registration logic (github_runner role) works, org-scope supported
 - [x] discover-proxmox.sh fills pkrvars + fleet.local.yml
 
-## Phase 1 — Prove one runner (validates reused registration logic)
+## Phase 1 — Prove one runner (DONE)
 
-- [ ] Clone one VM from a template, Ansible-register it (org-level), confirm it appears
+- [x] Clone one VM from a template, Ansible-register it (org-level), confirm it appears
       in der-pepe-dev runners and runs a job. This is the same registration the
       orchestrator will call — proving it de-risks the orchestrator.
 
