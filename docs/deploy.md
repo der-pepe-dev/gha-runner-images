@@ -59,7 +59,9 @@ pveum acl modify / -user packer@pve -role PackerDiscover
 
 # Build — grant before `packer build` (builtin roles are simplest):
 pveum acl modify / -user packer@pve -role PVEVMAdmin
-pveum acl modify /storage -user packer@pve -role PVEDatastoreUser
+# PVEDatastoreAdmin (not …User): uploading the generated build CD ISO needs
+# Datastore.AllocateTemplate, which PVEDatastoreUser lacks.
+pveum acl modify /storage -user packer@pve -role PVEDatastoreAdmin
 
 # Token (privsep 0 = token inherits the user's privileges):
 pveum user token add packer@pve packer --privsep 0
