@@ -1,18 +1,32 @@
 #cloud-config
-# Placeholder cloud-init/autoinstall data for future Ubuntu runner template.
-# Replace with a complete Ubuntu autoinstall configuration before use.
-
-users:
-  - name: ansible
-    groups: sudo
-    shell: /bin/bash
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    lock_passwd: true
-
-package_update: true
-packages:
-  - qemu-guest-agent
-  - openssh-server
-
-runcmd:
-  - systemctl enable --now qemu-guest-agent
+# Ubuntu 24.04 autoinstall (Subiquity) for the GHA runner golden template.
+# Served to the installer as a NoCloud datasource from a CD labeled "cidata".
+#
+# The 'ansible' user password hash below is for the documented placeholder
+# "ChangeMe_GHA_2026" and MUST match the ssh_password Packer var. Regenerate both
+# for production: openssl passwd -6 'yourpassword'
+autoinstall:
+  version: 1
+  locale: en_US.UTF-8
+  keyboard:
+    layout: us
+  ssh:
+    install-server: true
+    allow-pw: true
+  storage:
+    layout:
+      name: direct
+  identity:
+    hostname: ubuntu-gha-tmpl
+    realname: GHA Runner Build
+    username: ansible
+    password: '$6$zhAojilrGCxoXnxP$MAFMy9qVhKiKyV10rcDxfy3rWitE1EyRYFZsMPQGaDPW902Iqo29bcBDMvkS1X6JcOZUCgDNvsBykifhXEV3m1'
+  packages:
+    - qemu-guest-agent
+    - openssh-server
+  late-commands:
+    # Passwordless sudo for the ansible build/provisioning user.
+    - echo 'ansible ALL=(ALL) NOPASSWD:ALL' > /target/etc/sudoers.d/90-ansible
+    - chmod 440 /target/etc/sudoers.d/90-ansible
+    # The proxmox-iso builder discovers the VM IP via the guest agent.
+    - curtin in-target --target=/target -- systemctl enable qemu-guest-agent
