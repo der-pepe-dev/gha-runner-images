@@ -27,6 +27,10 @@ Repository: `https://github.com/der-pepe-dev/gha-runner-images`
 - [[required-tools]] — tools a management host must install to build/validate
 - [[context-map]]
 
+## Decisions
+
+- [[decisions/0001-self-sustaining-symmetric-orchestrators]] — target fleet architecture
+
 ## Task tracking
 
 - [[tasks/todo]] — durable backlog by priority
