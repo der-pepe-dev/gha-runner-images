@@ -1,0 +1,11 @@
+[Unit]
+Description=GitHub Actions Windows runner template eval-age check
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/gha-local-orchestrator
+# Secrets (PROXMOX_TOKEN_ID, PROXMOX_TOKEN) live here, not in the config:
+EnvironmentFile=/etc/gha-local-orchestrator/env
+ExecStart=/opt/gha-local-orchestrator/check-windows-template-age.sh /etc/gha-local-orchestrator/node.local.env

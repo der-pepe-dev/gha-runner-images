@@ -81,6 +81,32 @@ The scripts in this directory are scaffolds. Replace placeholder API calls and i
 - The Linux runner bootstrap is bash; the **Windows** runner bootstrap stays PowerShell
   (`bootstrap/windows-runner-once.ps1`) since it runs on Windows.
 
+## Windows template eval-age check
+
+Windows runner templates are built from an **evaluation** ISO, so the activation
+clock (180 days for Server 2022) starts when the `win-gha-core` template is built.
+`check-windows-template-age.sh` runs on the orchestrator and warns before that
+clock runs out, so the template is regenerated (or rearmed) in time.
+
+- **Alert only** — it never rebuilds. It reads each Windows template's creation
+  time from Proxmox (`/qemu/<vmid>/config` → `meta` → `ctime`), computes age, and
+  warns at/over `WIN_TEMPLATE_EVAL_MAX_DAYS` (default 100). No state file.
+- It checks the `SLOT_<n>_TEMPLATE_VMID` of every slot with `SLOT_<n>_OS=windows`.
+- Exit non-zero = at least one template overdue (or its `ctime` is unreadable).
+
+Install alongside the orchestrator and enable the daily timer:
+
+```sh
+install -m 0755 check-windows-template-age.sh /opt/gha-local-orchestrator/
+install -m 0644 gha-template-age-check.service gha-template-age-check.timer /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now gha-template-age-check.timer
+```
+
+When it warns, regenerate the template (`packer build .../windows-gha-core.pkr.hcl`)
+or rearm the running template (`slmgr /rearm`, then reboot) to reset the eval clock.
+See `../docs/windows-runner.md` for the rearm-vs-rebuild tradeoff.
+
 ## Optional NAS orchestrator
 
 If a NAS or larger server hosts an additional high-capacity runner group, prefer a local orchestrator there too:

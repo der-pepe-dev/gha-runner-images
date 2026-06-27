@@ -24,3 +24,9 @@ orchestrator scripts are scaffolds with placeholder Proxmox/injection logic.
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-06-27: Added Windows template eval-age tracking. Templates build from a
+  Windows Server eval ISO (180-day clock from build). `orchestrator/check-windows-template-age.sh`
+  + daily systemd timer (`gha-template-age-check.{service,timer}`) alert (no auto-rebuild)
+  when a Windows template hits `WIN_TEMPLATE_EVAL_MAX_DAYS` (default 100); age derived from
+  Proxmox VM `ctime`, no state file. Regenerate via packer or `slmgr /rearm` to reset.
+  See windows-runner.md + orchestrator/README.md.

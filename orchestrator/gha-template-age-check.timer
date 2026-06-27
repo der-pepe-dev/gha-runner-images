@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Windows runner template eval-age check daily
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+AccuracySec=1h
+RandomizedDelaySec=10min
+
+[Install]
+WantedBy=timers.target
