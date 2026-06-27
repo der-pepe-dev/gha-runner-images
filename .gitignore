@@ -4,6 +4,9 @@ packer_cache/
 crash.log
 *.pkrvars.hcl
 *.auto.pkrvars.hcl
+# Real autounattend holds the build/Administrator password — keep it local.
+# Commit only autounattend.xml.example.
+packer/windows/autounattend.xml
 
 # Terraform-style local vars, if added later
 *.tfvars

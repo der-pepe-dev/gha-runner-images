@@ -145,10 +145,15 @@ once that skeleton is completed.
 
 ```bash
 cd packer/windows
+cp autounattend.xml.example autounattend.xml   # gitignored; set the Administrator
+                                               # password to match winrm_password
 packer init windows-gha-core.pkr.hcl
 packer validate -var-file=local.pkrvars.hcl windows-gha-core.pkr.hcl
 packer build    -var-file=local.pkrvars.hcl windows-gha-core.pkr.hcl
 ```
+
+The password in `autounattend.xml` becomes the template's local Administrator password
+(inherited by every clone), so use a real private one — never commit `autounattend.xml`.
 
 Repeat with `windows-gha-buildtools.pkr.hcl` and (once finished) the Linux build under
 `packer/linux/`. Each produces one template; on Ceph that template is immediately

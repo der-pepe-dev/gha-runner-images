@@ -1,10 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Minimal Windows Server Core unattended install skeleton.
+  Minimal Windows Server Core unattended install skeleton (TEMPLATE).
+
+  Copy this to autounattend.xml (gitignored) and set a real password before
+  building:  cp autounattend.xml.example autounattend.xml
+  The password here becomes the template's local Administrator password and must
+  match winrm_password in your local pkrvars. Never commit the real autounattend.xml.
 
   Adapt disk selection and image metadata for your ISO.
-  The password below is a placeholder and must be replaced locally.
-  Do not commit real passwords.
 -->
 <unattend xmlns="urn:schemas-microsoft-com:unattend">
   <settings pass="windowsPE">
