@@ -4,9 +4,9 @@
   hosts: windows
   gather_facts: false
 
+  # github_owner / github_repo / registration_scope come from group_vars
+  # (inventory/group_vars/all.yml) — do NOT set them here: play vars override group_vars.
   vars:
-    github_owner: "CHANGE_ME_OWNER"
-    github_repo: "CHANGE_ME_REPO"
     runner_labels: "{{ hostvars[inventory_hostname].runner_labels | default('self-hosted,windows,x64,dotnet10,proxmox') }}"
 
   roles:
