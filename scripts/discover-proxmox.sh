@@ -102,6 +102,11 @@ else
     | sort | .[0] // empty')"
 fi
 echo "Detected bridge: ${BRIDGE:-<none found — set bridge manually>}" >&2
+if [ -z "$BRIDGE" ] && [ -n "$NETWORK_JSON" ]; then
+  # Diagnostic: show what the API actually returned so the filter can be fixed.
+  echo "  network entries returned: $(printf '%s' "$NETWORK_JSON" | jq -rc 'if type=="array" then [.[]|{iface,type}] else . end' 2>/dev/null)" >&2
+  echo "  (if empty [], the token likely lacks Sys.Audit on /nodes)" >&2
+fi
 
 # --- ISOs present ------------------------------------------------------------
 # List iso volids in the detected ISO storage (fall back to scanning all storages).
