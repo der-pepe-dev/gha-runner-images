@@ -189,6 +189,9 @@ build {
       search_criteria = "IsInstalled=0"
       filters = [
         "exclude:$_.Title -like '*Preview*'",
+        # Defender AV definitions change daily and auto-update on the runner — baking
+        # them is pure waste (and they are large).
+        "exclude:$_.Title -like '*Defender*'",
         "include:$true",
       ]
     }
