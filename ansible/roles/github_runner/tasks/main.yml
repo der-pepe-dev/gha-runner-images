@@ -1,0 +1,9 @@
+---
+# Run only on cloned VMs, never the golden template — runner names must be unique and
+# registration tokens are short-lived.
+#
+# Dispatch by platform. Windows plays run with gather_facts:false, so branch on
+# ansible_connection (set from inventory) rather than ansible_system.
+- name: Register GitHub Actions runner (platform-specific)
+  ansible.builtin.include_tasks:
+    file: "{{ 'Windows.yml' if ansible_connection == 'winrm' else 'Linux.yml' }}"

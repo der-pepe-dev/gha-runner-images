@@ -1,0 +1,26 @@
+---
+- name: Ensure tools directory exists
+  ansible.windows.win_file:
+    path: C:\tools
+    state: directory
+
+- name: Download dotnet-install script
+  ansible.windows.win_get_url:
+    url: https://dot.net/v1/dotnet-install.ps1
+    dest: C:\tools\dotnet-install.ps1
+
+- name: Install .NET SDK system-wide
+  ansible.windows.win_shell: >
+    powershell -ExecutionPolicy Bypass
+    -File C:\tools\dotnet-install.ps1
+    -Channel {{ dotnet_channel }}
+    -InstallDir "{{ dotnet_install_dir_windows }}"
+  args:
+    creates: "{{ dotnet_install_dir_windows }}\\dotnet.exe"
+
+- name: Add dotnet to machine PATH
+  ansible.windows.win_path:
+    elements:
+      - "{{ dotnet_install_dir_windows }}"
+    scope: machine
+    state: present

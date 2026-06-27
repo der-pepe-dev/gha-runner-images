@@ -1,0 +1,21 @@
+---
+galaxy_info:
+  role_name: dotnet_sdk
+  author: gha-runner-images
+  description: Install the .NET SDK on Linux or Windows GitHub Actions runners.
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+    - name: Windows
+      versions:
+        - "2022"
+        - "2025"
+  galaxy_tags:
+    - dotnet
+    - sdk
+    - ci
+dependencies: []

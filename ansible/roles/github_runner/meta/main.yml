@@ -1,0 +1,22 @@
+---
+galaxy_info:
+  role_name: github_runner
+  author: gha-runner-images
+  description: Register a self-hosted GitHub Actions runner (Linux or Windows) on a cloned VM.
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+    - name: Windows
+      versions:
+        - "2022"
+        - "2025"
+  galaxy_tags:
+    - github
+    - actions
+    - runner
+    - ci
+dependencies: []

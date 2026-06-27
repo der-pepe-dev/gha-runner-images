@@ -1,0 +1,25 @@
+---
+- name: Ensure .NET install directory exists
+  ansible.builtin.file:
+    path: "{{ dotnet_install_dir_linux }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Download dotnet-install script
+  ansible.builtin.get_url:
+    url: https://dot.net/v1/dotnet-install.sh
+    dest: /tmp/dotnet-install.sh
+    mode: '0755'
+
+- name: Install .NET SDK
+  ansible.builtin.command:
+    cmd: "/tmp/dotnet-install.sh --channel {{ dotnet_channel }} --install-dir {{ dotnet_install_dir_linux }}"
+    creates: "{{ dotnet_install_dir_linux }}/dotnet"
+
+- name: Link dotnet into PATH
+  ansible.builtin.file:
+    src: "{{ dotnet_install_dir_linux }}/dotnet"
+    dest: /usr/local/bin/dotnet
+    state: link

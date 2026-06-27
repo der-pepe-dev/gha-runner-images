@@ -4,7 +4,9 @@
   become: true
   gather_facts: true
 
-  tasks:
+  # pre_tasks run before roles, so base packages (curl, used by dotnet-install) are
+  # present before the dotnet_sdk role runs.
+  pre_tasks:
     - name: Install base packages
       ansible.builtin.apt:
         name:
@@ -16,31 +18,5 @@
         update_cache: true
       when: ansible_os_family == 'Debian'
 
-    - name: Create runner directories
-      ansible.builtin.file:
-        path: "{{ item }}"
-        state: directory
-        owner: root
-        group: root
-        mode: '0755'
-      loop:
-        - "{{ actions_runner_dir }}"
-        - "{{ actions_work_dir }}"
-        - /opt/dotnet
-
-    - name: Download dotnet-install script
-      ansible.builtin.get_url:
-        url: https://dot.net/v1/dotnet-install.sh
-        dest: /tmp/dotnet-install.sh
-        mode: '0755'
-
-    - name: Install .NET SDK
-      ansible.builtin.command:
-        cmd: "/tmp/dotnet-install.sh --channel {{ dotnet_channel }} --install-dir /opt/dotnet"
-        creates: /opt/dotnet/dotnet
-
-    - name: Link dotnet into PATH
-      ansible.builtin.file:
-        src: /opt/dotnet/dotnet
-        dest: /usr/local/bin/dotnet
-        state: link
+  roles:
+    - dotnet_sdk

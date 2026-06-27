@@ -1,0 +1,29 @@
+---
+# Pinned runner version (override in group_vars). Do not silently track latest.
+actions_runner_version: "2.329.0"
+
+# Install locations. group_vars set the platform-correct values
+# (linux: /opt/..., windows: C:\...); these are fallbacks.
+actions_runner_dir: /opt/actions-runner
+actions_work_dir: /opt/actions-work
+
+# Local service account that owns and runs the runner.
+runner_user: gha-runner
+
+# Registration target. Override these (CHANGE_ME guards against accidental runs).
+github_owner: "CHANGE_ME_OWNER"
+github_repo: "CHANGE_ME_REPO"
+github_repo_url: "https://github.com/{{ github_owner }}/{{ github_repo }}"
+
+# Runner identity. Labels are project-neutral by default so org runners are reusable.
+runner_name: "{{ inventory_hostname }}"
+runner_labels: "self-hosted,proxmox,dotnet10,ephemeral"
+
+# When true, register with --ephemeral (one job then deregister) and do NOT install a
+# persistent service — the orchestrator/run.sh drives a single job. Default is a
+# long-lived service runner, matching the register playbooks.
+runner_ephemeral: false
+
+# Secrets come from ansible-vault (group_vars/vault.yml), never defaulted here:
+#   github_pat            PAT used to request a short-lived registration token
+#   gha_runner_password   Windows service account password

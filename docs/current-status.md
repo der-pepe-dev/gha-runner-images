@@ -24,6 +24,14 @@ orchestrator scripts are scaffolds with placeholder Proxmox/injection logic.
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-06-27: Filled `dotnet_sdk` and `github_runner` roles (previously README stubs).
+  Both branch Linux/Windows via `ansible_connection` (works with gather_facts:false).
+  github_runner keeps the persistent-service behavior with an optional
+  `runner_ephemeral` flag. Rewired linux/windows-base (dotnet via role in pre_tasks/
+  role/post_tasks order) and the register playbooks (thin role callers). Added
+  `roles_path = roles` to ansible.cfg so roles resolve from `ansible/roles`. All four
+  playbooks pass `ansible-playbook --syntax-check`. (`windows_buildtools` role still a
+  stub; its logic remains in windows-buildtools.yml.)
 - 2026-06-27: Repo audit fixes. Windows Packer templates now `packer validate` clean —
   removed invalid `shutdown_command` (proxmox-iso has no such field; it never validated
   before) and stripped `Stop-Computer` from cleanup.ps1 (it runs as a provisioner).

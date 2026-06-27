@@ -4,11 +4,11 @@
   gather_facts: false
 
   vars:
-    dotnet_install_dir: 'C:\Program Files\dotnet'
     git_for_windows_url: "https://github.com/git-for-windows/git/releases/download/v2.51.0.windows.1/Git-2.51.0-64-bit.exe"
     powershell_7_url: "https://github.com/PowerShell/PowerShell/releases/download/v7.5.3/PowerShell-7.5.3-win-x64.msi"
 
-  tasks:
+  # pre_tasks run before roles; install Git/PowerShell and OS tweaks before dotnet_sdk.
+  pre_tasks:
     - name: Create tools and runner directories
       ansible.windows.win_file:
         path: "{{ item }}"
@@ -43,27 +43,10 @@
         arguments: /quiet /norestart
         creates_path: C:\Program Files\PowerShell\7\pwsh.exe
 
-    - name: Download dotnet-install script
-      ansible.windows.win_get_url:
-        url: https://dot.net/v1/dotnet-install.ps1
-        dest: C:\tools\dotnet-install.ps1
+  roles:
+    - dotnet_sdk
 
-    - name: Install .NET SDK system-wide
-      ansible.windows.win_shell: >
-        powershell -ExecutionPolicy Bypass
-        -File C:\tools\dotnet-install.ps1
-        -Channel {{ dotnet_channel }}
-        -InstallDir "{{ dotnet_install_dir }}"
-      args:
-        creates: 'C:\Program Files\dotnet\dotnet.exe'
-
-    - name: Add dotnet to machine PATH
-      ansible.windows.win_path:
-        elements:
-          - 'C:\Program Files\dotnet'
-        scope: machine
-        state: present
-
+  post_tasks:
     - name: Show dotnet info
-      ansible.windows.win_shell: '& "C:\Program Files\dotnet\dotnet.exe" --info'
+      ansible.windows.win_shell: '& "{{ dotnet_install_dir_windows }}\dotnet.exe" --info'
       changed_when: false

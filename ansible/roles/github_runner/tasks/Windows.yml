@@ -1,0 +1,71 @@
+---
+# Single-quoted: double quotes would let YAML interpret \t / \a as escapes and corrupt
+# the Windows path.
+- name: Set runner package path
+  ansible.builtin.set_fact:
+    runner_zip: 'C:\tools\actions-runner-win-x64-{{ actions_runner_version }}.zip'
+
+- name: Ensure tools and runner directories exist
+  ansible.windows.win_file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - C:\tools
+    - "{{ actions_runner_dir }}"
+    - "{{ actions_work_dir }}"
+
+- name: Create local runner service user
+  ansible.windows.win_user:
+    name: "{{ runner_user }}"
+    password: "{{ gha_runner_password }}"
+    state: present
+    password_never_expires: true
+    groups:
+      - Users
+  no_log: true
+
+- name: Request GitHub runner registration token
+  ansible.windows.win_uri:
+    url: "https://api.github.com/repos/{{ github_owner }}/{{ github_repo }}/actions/runners/registration-token"
+    method: POST
+    headers:
+      Authorization: "Bearer {{ github_pat }}"
+      Accept: "application/vnd.github+json"
+      X-GitHub-Api-Version: "2022-11-28"
+    return_content: true
+  register: runner_token_response
+  no_log: true
+
+- name: Extract registration token
+  ansible.builtin.set_fact:
+    runner_token: "{{ (runner_token_response.content | from_json).token }}"
+  no_log: true
+
+- name: Download GitHub Actions runner package
+  ansible.windows.win_get_url:
+    url: "https://github.com/actions/runner/releases/download/v{{ actions_runner_version }}/actions-runner-win-x64-{{ actions_runner_version }}.zip"
+    dest: "{{ runner_zip }}"
+
+- name: Extract runner package
+  community.windows.win_unzip:
+    src: "{{ runner_zip }}"
+    dest: "{{ actions_runner_dir }}"
+    creates: "{{ actions_runner_dir }}\\config.cmd"
+
+- name: Configure runner as Windows service
+  ansible.windows.win_shell: >
+    .\config.cmd
+    --unattended
+    --url "{{ github_repo_url }}"
+    --token "{{ runner_token }}"
+    --name "{{ runner_name }}"
+    --labels "{{ runner_labels }}"
+    --work "{{ actions_work_dir }}"
+    {{ '--ephemeral' if runner_ephemeral else '--runasservice' }}
+    {{ '' if runner_ephemeral else '--windowslogonaccount ".\\' + runner_user + '"' }}
+    {{ '' if runner_ephemeral else '--windowslogonpassword "' + gha_runner_password + '"' }}
+    --replace
+  args:
+    chdir: "{{ actions_runner_dir }}"
+    creates: "{{ actions_runner_dir }}\\.runner"
+  no_log: true

@@ -1,0 +1,7 @@
+---
+# .NET SDK channel to install (e.g. "10.0", "8.0", or "LTS").
+dotnet_channel: "10.0"
+
+# Install locations per platform.
+dotnet_install_dir_linux: /opt/dotnet
+dotnet_install_dir_windows: 'C:\Program Files\dotnet'

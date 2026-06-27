@@ -1,0 +1,6 @@
+---
+# Dispatch by platform. Windows plays run with gather_facts:false, so branch on
+# ansible_connection (set from inventory) rather than ansible_system.
+- name: Install .NET SDK (platform-specific)
+  ansible.builtin.include_tasks:
+    file: "{{ 'Windows.yml' if ansible_connection == 'winrm' else 'Linux.yml' }}"
