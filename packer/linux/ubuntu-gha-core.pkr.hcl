@@ -18,6 +18,10 @@ variable "iso_file" { default = "local:iso/ubuntu-24.04-live-server-amd64.iso" }
 variable "storage_pool" { default = "local-lvm" }
 variable "bridge" { default = "vmbr0" }
 variable "vm_name" { default = "tmpl-ubuntu-gha-core" }
+variable "cpu_type" {
+  default     = "host"
+  description = "Proxmox CPU type. 'host' exposes the full physical CPU for best CI performance; safe for the pinned non-HA fleet."
+}
 
 source "proxmox-iso" "ubuntu_gha_core" {
   proxmox_url              = var.proxmox_url
@@ -29,11 +33,12 @@ source "proxmox-iso" "ubuntu_gha_core" {
   vm_name       = var.vm_name
   template_name = var.vm_name
 
-  os      = "l26"
-  machine = "q35"
-  cores   = 2
-  sockets = 1
-  memory  = 4096
+  os       = "l26"
+  machine  = "q35"
+  cpu_type = var.cpu_type
+  cores    = 2
+  sockets  = 1
+  memory   = 4096
 
   scsi_controller = "virtio-scsi-single"
 

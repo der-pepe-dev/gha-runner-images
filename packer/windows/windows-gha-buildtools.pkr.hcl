@@ -33,6 +33,10 @@ variable "install_updates" {
   default     = true
   description = "Run Windows Update during the build (adds significant time). Set false for fast test builds."
 }
+variable "cpu_type" {
+  default     = "host"
+  description = "Proxmox CPU type. 'host' exposes the full physical CPU (AES-NI/AVX) for best CI performance; safe for the pinned non-HA fleet."
+}
 variable "bridge" { default = "vmbr0" }
 variable "vm_name" { default = "tmpl-win-gha-buildtools" }
 variable "winrm_username" { default = "Administrator" }
@@ -52,11 +56,12 @@ source "proxmox-iso" "win_gha_buildtools" {
   vm_name       = var.vm_name
   template_name = var.vm_name
 
-  os      = "win11"
-  machine = "q35"
-  cores   = 6
-  sockets = 1
-  memory  = 16384
+  os       = "win11"
+  machine  = "q35"
+  cpu_type = var.cpu_type
+  cores    = 6
+  sockets  = 1
+  memory   = 16384
 
   # UEFI (OVMF) — autounattend.xml uses a GPT layout; see windows-gha-core for details.
   bios = "ovmf"

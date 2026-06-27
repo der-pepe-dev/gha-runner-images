@@ -63,6 +63,12 @@ variable "install_updates" {
   description = "Run Windows Update during the build (adds significant time). Set false for fast test builds."
 }
 
+variable "cpu_type" {
+  type        = string
+  default     = "host"
+  description = "Proxmox CPU type. 'host' exposes the full physical CPU (AES-NI/AVX) for best CI performance; the pinned non-HA fleet does not live-migrate, so passthrough is safe. Use a named model only if you need cross-CPU migration."
+}
+
 variable "bridge" {
   type        = string
   default     = "vmbr0"
@@ -99,11 +105,12 @@ source "proxmox-iso" "win_gha_core" {
   template_name = var.vm_name
 
   # Adjust to your environment if needed.
-  os      = "win11"
-  machine = "q35"
-  cores   = 4
-  sockets = 1
-  memory  = 8192
+  os       = "win11"
+  machine  = "q35"
+  cpu_type = var.cpu_type
+  cores    = 4
+  sockets  = 1
+  memory   = 8192
 
   # UEFI (OVMF) — autounattend.xml uses a GPT layout (EFI/MSR/WinRE partitions), which
   # only applies under UEFI. Without this the VM boots legacy SeaBIOS and Windows Setup
