@@ -66,54 +66,119 @@ get_proxmox_vm_state() {
   | jq -r '.data.status'
 }
 
-# --- Reset one runner slot (SCAFFOLD) ----------------------------------------
+# --- Proxmox helpers ---------------------------------------------------------
+# POST to a Proxmox API path; echo the raw JSON response.
+pve_post() {
+  local path="$1"; shift
+  curl -fsS -k -H "$PVE_AUTH" -X POST "${PROXMOX_URL}${path}" "$@"
+}
+
+# Wait for a Proxmox task (UPID) to finish with exit status OK.
+wait_for_task() {
+  local upid="$1" tries=120 body status
+  [ -n "$upid" ] && [ "$upid" != "null" ] || return 0
+  while [ "$tries" -gt 0 ]; do
+    body="$(curl -fsS -k -H "$PVE_AUTH" "${PROXMOX_URL}/nodes/${PROXMOX_NODE}/tasks/${upid}/status" 2>/dev/null)" || true
+    status="$(printf '%s' "$body" | jq -r '.data.status // empty')"
+    if [ "$status" = "stopped" ]; then
+      [ "$(printf '%s' "$body" | jq -r '.data.exitstatus // empty')" = "OK" ] && return 0
+      echo "task ${upid} did not exit OK" >&2; return 1
+    fi
+    sleep 2; tries=$((tries - 1))
+  done
+  echo "task ${upid} timed out" >&2; return 1
+}
+
+# Wait for the QEMU guest agent to respond.
+wait_for_agent() {
+  local vmid="$1" tries=120
+  while [ "$tries" -gt 0 ]; do
+    if curl -fsS -k -H "$PVE_AUTH" -X POST \
+         "${PROXMOX_URL}/nodes/${PROXMOX_NODE}/qemu/${vmid}/agent/ping" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 2; tries=$((tries - 1))
+  done
+  echo "guest agent on ${vmid} not responding" >&2; return 1
+}
+
+# Write a file into the guest via the agent (used to inject the runner env).
+pve_agent_write_file() {
+  local vmid="$1" path="$2" content="$3"
+  curl -fsS -k -H "$PVE_AUTH" -X POST \
+    --data-urlencode "file=${path}" \
+    --data-urlencode "content=${content}" \
+    "${PROXMOX_URL}/nodes/${PROXMOX_NODE}/qemu/${vmid}/agent/file-write" >/dev/null
+}
+
+# --- Reset one runner slot (snapshot-rollback + guest-agent token injection) --
+# Rolls the slot VM back to its clean (unregistered) snapshot, starts it, mints a
+# fresh registration token, and writes the runner env into the guest via the agent.
+# A waiter baked into the image reads that env and runs the one-shot ephemeral runner.
 reset_runner_slot() {
   local idx="$1"
-  local name vmid template_vmid snapshot os labels
+  local name vmid snapshot os labels upid runner_token runner_url env_path env_content
   eval "name=\${SLOT_${idx}_NAME}"
   eval "vmid=\${SLOT_${idx}_VMID}"
-  eval "template_vmid=\${SLOT_${idx}_TEMPLATE_VMID}"
-  eval "snapshot=\${SLOT_${idx}_CLEAN_SNAPSHOT}"
+  eval "snapshot=\${SLOT_${idx}_CLEAN_SNAPSHOT:-clean}"
   eval "os=\${SLOT_${idx}_OS}"
   eval "labels=\${SLOT_${idx}_LABELS}"
 
-  echo "Resetting slot ${name} on ${PROXMOX_NODE} (mode=${MODE:-unset})"
+  echo "Resetting ${name} (vmid ${vmid}): rollback -> '${snapshot}'"
 
-  # TODO: choose one strategy based on $MODE:
-  # 1. snapshot-rollback:
-  #    POST {PROXMOX_URL}/nodes/{node}/qemu/{vmid}/snapshot/{snapshot}/rollback
-  # 2. destroy-reclone:
-  #    DELETE {PROXMOX_URL}/nodes/{node}/qemu/{vmid}
-  #    POST   {PROXMOX_URL}/nodes/{node}/qemu/{template_vmid}/clone
+  # 1. Roll back to the clean snapshot.
+  upid="$(pve_post "/nodes/${PROXMOX_NODE}/qemu/${vmid}/snapshot/${snapshot}/rollback" | jq -r '.data // empty')"
+  wait_for_task "$upid" || { echo "ERR ${name}: rollback failed" >&2; return 1; }
 
-  local runner_token
+  # 2. Start the VM.
+  upid="$(pve_post "/nodes/${PROXMOX_NODE}/qemu/${vmid}/status/start" | jq -r '.data // empty')"
+  wait_for_task "$upid" || { echo "ERR ${name}: start failed" >&2; return 1; }
+
+  # 3. Wait for the guest agent.
+  wait_for_agent "$vmid" || { echo "ERR ${name}: agent not up" >&2; return 1; }
+
+  # 4. Mint a fresh registration token (orchestrator holds the PAT, not the runner).
   runner_token="$(get_github_runner_token "$GITHUB_OWNER" "$GITHUB_REPO" "$REGISTRATION_SCOPE")"
+  if [ -z "$runner_token" ] || [ "$runner_token" = "null" ]; then
+    echo "ERR ${name}: token request failed" >&2; return 1
+  fi
+  if [ "$REGISTRATION_SCOPE" = "org" ]; then
+    runner_url="https://github.com/${GITHUB_OWNER}"
+  else
+    runner_url="https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}"
+  fi
 
-  # TODO: inject bootstrap settings into the VM before start. Approaches:
-  # - cloud-init custom user-data (Linux)
-  # - QEMU guest agent file write (already-booted VMs)
-  # - temporary ISO/snippet with an env file
-  #
-  # Values to inject (do NOT log runner_token):
-  #   RUNNER_NAME="$name"
-  #   RUNNER_LABELS="$labels"
-  #   RUNNER_TOKEN="$runner_token"
-  #   RUNNER_EPHEMERAL=true
-  #   RUNNER_OS="$os"
+  # 5. Inject the runner env via the guest agent (OS-specific path + format).
+  if [ "$os" = "windows" ]; then
+    env_path='C:\gha-runner\runner.env.ps1'
+    env_content="\$env:RUNNER_URL='${runner_url}'
+\$env:RUNNER_TOKEN='${runner_token}'
+\$env:RUNNER_NAME='${name}'
+\$env:RUNNER_LABELS='${labels}'
+\$env:RUNNER_EPHEMERAL='true'"
+  else
+    env_path='/etc/gha-runner/env'
+    env_content="RUNNER_URL=${runner_url}
+RUNNER_TOKEN=${runner_token}
+RUNNER_NAME=${name}
+RUNNER_LABELS=${labels}
+RUNNER_EPHEMERAL=true"
+  fi
+  pve_agent_write_file "$vmid" "$env_path" "$env_content" \
+    || { echo "ERR ${name}: env injection failed" >&2; return 1; }
 
-  # TODO: start VM:
-  #   POST {PROXMOX_URL}/nodes/{node}/qemu/{vmid}/status/start
-
-  echo "Prepared fresh token for ${name}; implement injection/start workflow."
-  # Avoid leaking the token in logs/CI output:
-  unset runner_token
+  echo "${name}: clean, started, env injected — waiter will register --ephemeral."
+  # Don't leave the token in the environment/logs.
+  unset runner_token env_content
 }
 
 # --- Reconcile loop over this node's slots ------------------------------------
 for ((i = 1; i <= SLOT_COUNT; i++)); do
   eval "slot_name=\${SLOT_${i}_NAME:-}"
   eval "slot_vmid=\${SLOT_${i}_VMID:-}"
-  [ -n "$slot_name" ] && [ -n "$slot_vmid" ] || { echo "slot ${i}: incomplete config, skipping" >&2; continue; }
+  if [ -z "$slot_name" ] || [ -z "$slot_vmid" ]; then
+    echo "slot ${i}: incomplete config, skipping" >&2; continue
+  fi
 
   if state="$(get_proxmox_vm_state "$slot_vmid" 2>/dev/null)"; then
     echo "${slot_name}: ${state}"

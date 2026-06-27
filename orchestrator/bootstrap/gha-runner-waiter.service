@@ -1,0 +1,16 @@
+[Unit]
+Description=GHA ephemeral runner — wait for injected env, run one job, shut down
+After=network-online.target qemu-guest-agent.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# The orchestrator writes /etc/gha-runner/env via the guest agent shortly after boot
+# (rollback -> start -> agent up -> file-write). Wait up to ~5 min for it.
+ExecStartPre=/bin/bash -c 'for i in $(seq 1 150); do [ -s /etc/gha-runner/env ] && exit 0; sleep 2; done; echo "no /etc/gha-runner/env injected" >&2; exit 1'
+# linux-runner-once.sh sources the env, registers --ephemeral, runs one job, then
+# shuts the VM down. The orchestrator then detects "stopped" and rolls back again.
+ExecStart=/opt/gha-runner/linux-runner-once.sh
+
+[Install]
+WantedBy=multi-user.target
