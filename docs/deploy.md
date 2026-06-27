@@ -39,20 +39,58 @@ Use one of:
 - A node-local directory (e.g. `local`) — simplest, but the ISO must exist on **each**
   node you build on.
 
-## One-time cluster setup
+## Cluster prerequisites
 
-1. **Enable CephFS for ISOs/snippets** (Datacenter → Storage, or `pvesm`). Give it
-   content types `iso,snippets`. Call it e.g. `cephfs`.
-2. **Confirm the RBD pool name** for VM disks (e.g. `ceph-vm` or `rbd`). This is your
-   Packer `storage_pool`.
-3. **Upload install ISOs once** to CephFS:
-   ```bash
-   # via Proxmox UI (Storage → cephfs → ISO Images → Upload), or scp to a node:
-   scp windows-server-2022.iso root@pve01:/mnt/pve/cephfs/template/iso/
-   scp ubuntu-24.04-live-server-amd64.iso root@pve01:/mnt/pve/cephfs/template/iso/
-   ```
-4. **Create a Packer API token** with rights to create/clone/configure VMs and read
-   storage (`packer@pve!packer`). Keep the secret out of git.
+What must exist on the cluster before running `scripts/discover-proxmox.sh` and
+`packer build`. The discovery script only **reads** the API; it creates nothing.
+
+### 1. API token
+
+`discover-proxmox.sh` needs only **read/audit** privileges. `packer build` needs
+write privileges (create/clone/configure VMs, allocate disk). Create the user + token
+once on any node:
+
+```bash
+pveum user add packer@pve
+
+# Discovery (read-only) — enough to run discover-proxmox.sh:
+pveum role add PackerDiscover -privs "Datastore.Audit,VM.Audit,Sys.Audit"
+pveum acl modify / -user packer@pve -role PackerDiscover
+
+# Build — grant before `packer build` (builtin roles are simplest):
+pveum acl modify / -user packer@pve -role PVEVMAdmin
+pveum acl modify /storage -user packer@pve -role PVEDatastoreUser
+
+# Token (privsep 0 = token inherits the user's privileges):
+pveum user token add packer@pve packer --privsep 0
+# -> prints full-tokenid "packer@pve!packer" and a secret value. Keep the secret out
+#    of git; pass it as PROXMOX_TOKEN.
+```
+
+### 2. Storage (Ceph)
+
+- **CephFS** storage with `iso` content enabled (holds install ISOs + the generated
+  build-time CD): `pvesm set cephfs --content iso,snippets,vztmpl`. Discovery maps it to
+  `iso_storage_pool`.
+- **RBD pool** for VM disks (e.g. `ceph-vm` / `rbd`) — discovery maps it to
+  `storage_pool`. Already present if the cluster runs VMs on Ceph.
+
+### 3. Install ISOs uploaded to CephFS
+
+Upload once (UI Storage → cephfs → ISO Images → Upload, or `scp` to
+`/mnt/pve/cephfs/template/iso/`). Discovery picks them up as `iso_file`
+(Windows match handles eval names like `SERVER_EVAL_x64FREE_en-us.iso`).
+
+### 4. A `vmbr*` bridge
+
+Any Linux bridge on the build node — discovery uses the first as `bridge`.
+
+> Without #2/#3, discovery still runs but writes `CHANGE_ME` placeholders for the
+> missing values. Templates VMIDs for the fleet file only appear on a **second** run,
+> after `packer build`.
+
+**You have the token and ISOs uploaded — #1 and #3 are done. Confirm CephFS has `iso`
+content (#2) and you're ready to run the script.**
 
 ## Network reachability
 
