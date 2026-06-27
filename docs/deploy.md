@@ -86,6 +86,10 @@ Upload once (UI Storage → cephfs → ISO Images → Upload, or `scp` to
 `/mnt/pve/cephfs/template/iso/`). Discovery picks them up as `iso_file`
 (Windows match handles eval names like `SERVER_EVAL_x64FREE_en-us.iso`).
 
+Also upload **virtio-win.iso** — the Windows build mounts it so the QEMU guest
+agent installs at first boot (the Packer builder needs the agent to discover the VM
+IP for WinRM). Discovery picks it up as `virtio_iso`.
+
 ### 4. A `vmbr*` bridge
 
 Any Linux bridge on the build node — discovery uses the first as `bridge`.

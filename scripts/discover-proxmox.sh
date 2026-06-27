@@ -160,9 +160,12 @@ LINUX_PAT='ubuntu|debian|fedora|rocky|almalinux|alma|centos|opensuse'
 WIN_PAT='windows|winserver|server|_eval_|x64free'
 LINUX_ISO="$(printf '%s\n' "$ISOS" | grep -iE "$LINUX_PAT" | head -1 || true)"
 WIN_ISO="$(printf '%s\n' "$ISOS" | grep -iE "$WIN_PAT" | grep -ivE "$LINUX_PAT" | head -1 || true)"
+# virtio-win ISO (QEMU guest agent + drivers) for the Windows build.
+VIRTIO_ISO="$(printf '%s\n' "$ISOS" | grep -iE 'virtio' | head -1 || true)"
 
 echo "Windows ISO: ${WIN_ISO:-<none found — upload one>}" >&2
 echo "Linux ISO:   ${LINUX_ISO:-<none found — upload one>}" >&2
+echo "virtio ISO:  ${VIRTIO_ISO:-<none found — upload virtio-win.iso>}" >&2
 
 # --- Emit a value or a CHANGE_ME placeholder with a hint ----------------------
 val_or_todo() { [ -n "$1" ] && printf '%s' "$1" || printf 'CHANGE_ME_%s' "$2"; }
@@ -200,6 +203,9 @@ write_varfile() {
     echo "storage_pool     = \"$(val_or_todo "$STORAGE_POOL" STORAGE_POOL)\""
     echo "iso_storage_pool = \"$(val_or_todo "$ISO_STORAGE_POOL" ISO_STORAGE_POOL)\""
     echo "bridge           = \"$(val_or_todo "$BRIDGE" BRIDGE)\""
+    if [ "$is_windows" -eq 1 ]; then
+      echo "virtio_iso       = \"$(val_or_todo "$VIRTIO_ISO" VIRTIO_ISO)\""
+    fi
     echo ""
     echo "vm_name          = \"${vm_name}\""
     if [ "$is_windows" -eq 1 ]; then

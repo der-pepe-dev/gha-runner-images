@@ -20,6 +20,10 @@ variable "iso_storage_pool" {
   default     = "local"
   description = "Storage for the generated build-time CD (autounattend + scripts). Must allow ISO content; on a Ceph-only cluster use a CephFS storage."
 }
+variable "virtio_iso" {
+  default     = "cephfs:iso/virtio-win.iso"
+  description = "virtio-win ISO volume; mounted so the QEMU guest agent installs at first boot (builder needs it to discover the VM IP)."
+}
 variable "bridge" { default = "vmbr0" }
 variable "vm_name" { default = "tmpl-win-gha-buildtools" }
 variable "winrm_username" { default = "Administrator" }
@@ -83,6 +87,13 @@ source "proxmox-iso" "win_gha_buildtools" {
       "scripts/cleanup.ps1"
     ]
     cd_label = "gha_build"
+  }
+
+  # virtio-win ISO so the QEMU guest agent installs at first boot; see windows-gha-core.
+  additional_iso_files {
+    device   = "sata4"
+    iso_file = var.virtio_iso
+    unmount  = true
   }
 
   communicator   = "winrm"
