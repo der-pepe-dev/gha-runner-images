@@ -118,9 +118,10 @@ source "proxmox-iso" "win_gha_buildtools" {
 build {
   sources = ["source.proxmox-iso.win_gha_buildtools"]
 
+  # Guest agent + virtio drivers install at FirstLogon (autounattend); only cleanup
+  # runs here. See windows-gha-core.
   provisioner "powershell" {
     scripts = [
-      "scripts/install-qemu-guest-agent.ps1",
       "scripts/cleanup.ps1"
     ]
   }

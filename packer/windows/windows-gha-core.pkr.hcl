@@ -173,9 +173,11 @@ source "proxmox-iso" "win_gha_core" {
 build {
   sources = ["source.proxmox-iso.win_gha_core"]
 
+  # The guest agent + virtio drivers are installed at FirstLogon (autounattend) — the
+  # builder needs the agent up to discover the VM IP for WinRM, well before provisioners
+  # run — so only cleanup runs here.
   provisioner "powershell" {
     scripts = [
-      "scripts/install-qemu-guest-agent.ps1",
       "scripts/cleanup.ps1"
     ]
   }
