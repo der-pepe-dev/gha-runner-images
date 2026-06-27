@@ -81,3 +81,8 @@ if (Get-Service -Name QEMU-GA -ErrorAction SilentlyContinue) {
 } else {
     Write-Warning 'QEMU-GA service not found after install.'
 }
+
+# pnputil returns non-zero when some bundled drivers match no device (normal when
+# installing the whole virtio set). That is not a failure here, so exit explicitly so
+# a stray $LASTEXITCODE does not fail the build.
+exit 0

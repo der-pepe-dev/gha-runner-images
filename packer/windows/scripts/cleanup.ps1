@@ -37,4 +37,8 @@ try {
 # Optional Sysprep location:
 # & "$env:SystemRoot\System32\Sysprep\Sysprep.exe" /generalize /oobe /shutdown /quiet
 
-Write-Host 'Cleanup complete. Packer will shut the VM down via shutdown_command.'
+Write-Host 'Cleanup complete. Packer (proxmox-iso builder) will stop the VM.'
+
+# Best-effort script: external tools above (wevtutil/powercfg) may leave a non-zero
+# $LASTEXITCODE. Exit 0 so that does not fail the Packer provisioner.
+exit 0
