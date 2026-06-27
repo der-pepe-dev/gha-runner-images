@@ -1,0 +1,11 @@
+[Unit]
+Description=GitHub Actions local Proxmox runner orchestrator
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/gha-local-orchestrator
+# Secrets (PROXMOX_TOKEN_ID, PROXMOX_TOKEN, GITHUB_TOKEN) live here, not in the config:
+EnvironmentFile=/etc/gha-local-orchestrator/env
+ExecStart=/opt/gha-local-orchestrator/gha-local-orchestrator.sh /etc/gha-local-orchestrator/node.local.env

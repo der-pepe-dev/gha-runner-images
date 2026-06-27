@@ -1,0 +1,84 @@
+# Example local fleet definition for scripts/clone-runner-fleet.ps1.
+# Copy to fleet.local.yml and replace placeholders. Do not commit real values.
+
+proxmox_url: "https://pve.example.local:8006/api2/json"
+windows_template_vmid: 9001
+linux_template_vmid: 9002
+orchestrator_template_vmid: 9003
+storage: "local-lvm"
+full_clone: true
+
+orchestrators:
+  - name: gha-orch01
+    node: pve01
+    vmid: 291
+    manages:
+      - gha-linux01
+      - gha-win01
+  - name: gha-orch02
+    node: pve02
+    vmid: 292
+    manages:
+      - gha-linux02
+      - gha-win02
+  - name: gha-orch03
+    node: pve03
+    vmid: 293
+    manages:
+      - gha-linux03
+      - gha-win03
+
+runners:
+  - name: gha-linux01
+    node: pve01
+    vmid: 301
+    template: linux
+    labels: "self-hosted,linux,x64,dotnet10,proxmox,pve01,ephemeral"
+  - name: gha-win01
+    node: pve01
+    vmid: 311
+    template: windows
+    labels: "self-hosted,windows,x64,dotnet10,proxmox,pve01,ephemeral"
+  - name: gha-linux02
+    node: pve02
+    vmid: 302
+    template: linux
+    labels: "self-hosted,linux,x64,dotnet10,proxmox,pve02,ephemeral"
+  - name: gha-win02
+    node: pve02
+    vmid: 312
+    template: windows
+    labels: "self-hosted,windows,x64,dotnet10,proxmox,pve02,ephemeral"
+  - name: gha-linux03
+    node: pve03
+    vmid: 303
+    template: linux
+    labels: "self-hosted,linux,x64,dotnet10,proxmox,pve03,ephemeral"
+  - name: gha-win03
+    node: pve03
+    vmid: 313
+    template: windows
+    labels: "self-hosted,windows,x64,dotnet10,proxmox,pve03,ephemeral"
+
+# Optional high-capacity NAS/server runner group.
+# Keep these labels opt-in so normal jobs stay on the lightweight Proxmox fleet.
+nas_runner_group:
+  enabled: false
+  orchestrator:
+    name: gha-nas-orch01
+    node: nas01
+    vmid: 491
+    manages:
+      - gha-nas-linux01
+      - gha-nas-win01
+  runners:
+    - name: gha-nas-linux01
+      node: nas01
+      vmid: 401
+      template: linux-beefy
+      labels: "self-hosted,linux,x64,dotnet10,nas,beefy,ephemeral"
+    - name: gha-nas-win01
+      node: nas01
+      vmid: 411
+      template: windows-buildtools
+      labels: "self-hosted,windows,x64,dotnet10,nas,beefy,vs-buildtools,ephemeral"

@@ -1,0 +1,12 @@
+---
+ansible_user: Administrator
+ansible_password: CHANGE_ME
+ansible_connection: winrm
+ansible_port: 5985
+ansible_winrm_transport: basic
+ansible_winrm_server_cert_validation: ignore
+
+dotnet_channel: "10.0"
+actions_runner_version: "2.329.0"
+actions_runner_dir: 'C:\actions-runner'
+actions_work_dir: 'C:\actions-work'

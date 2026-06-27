@@ -1,0 +1,18 @@
+#cloud-config
+# Placeholder cloud-init/autoinstall data for future Ubuntu runner template.
+# Replace with a complete Ubuntu autoinstall configuration before use.
+
+users:
+  - name: ansible
+    groups: sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: true
+
+package_update: true
+packages:
+  - qemu-guest-agent
+  - openssh-server
+
+runcmd:
+  - systemctl enable --now qemu-guest-agent

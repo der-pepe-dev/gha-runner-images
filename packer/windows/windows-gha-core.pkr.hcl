@@ -1,0 +1,136 @@
+packer {
+  required_plugins {
+    proxmox = {
+      source  = "github.com/hashicorp/proxmox"
+      version = ">= 1.2.3"
+    }
+  }
+}
+
+variable "proxmox_url" {
+  type        = string
+  description = "Proxmox API URL, for example https://pve.example.local:8006/api2/json"
+}
+
+variable "proxmox_username" {
+  type        = string
+  description = "Proxmox API token username, for example packer@pve!packer"
+}
+
+variable "proxmox_token" {
+  type        = string
+  sensitive   = true
+  description = "Proxmox API token secret. Do not commit real values."
+}
+
+variable "proxmox_node" {
+  type        = string
+  default     = "pve"
+  description = "Target Proxmox node."
+}
+
+variable "iso_file" {
+  type        = string
+  default     = "local:iso/windows-server-2022.iso"
+  description = "Windows Server ISO path in Proxmox storage."
+}
+
+variable "storage_pool" {
+  type        = string
+  default     = "local-lvm"
+  description = "Proxmox storage pool for VM disk."
+}
+
+variable "bridge" {
+  type        = string
+  default     = "vmbr0"
+  description = "Proxmox network bridge."
+}
+
+variable "vm_name" {
+  type        = string
+  default     = "tmpl-win-gha-core"
+  description = "Template VM name."
+}
+
+variable "winrm_username" {
+  type        = string
+  default     = "Administrator"
+  description = "Temporary build-time Windows administrator user."
+}
+
+variable "winrm_password" {
+  type        = string
+  sensitive   = true
+  default     = "CHANGE_ME_BUILD_PASSWORD"
+  description = "Temporary build-time administrator password. Replace locally and do not commit."
+}
+
+source "proxmox-iso" "win_gha_core" {
+  proxmox_url              = var.proxmox_url
+  username                 = var.proxmox_username
+  token                    = var.proxmox_token
+  node                     = var.proxmox_node
+  insecure_skip_tls_verify = true
+
+  vm_name       = var.vm_name
+  template_name = var.vm_name
+
+  # Adjust to your environment if needed.
+  os      = "win11"
+  machine = "q35"
+  cores   = 4
+  sockets = 1
+  memory  = 8192
+
+  scsi_controller = "virtio-scsi-single"
+
+  disks {
+    type         = "scsi"
+    disk_size    = "80G"
+    storage_pool = var.storage_pool
+    format       = "raw"
+  }
+
+  network_adapters {
+    model  = "virtio"
+    bridge = var.bridge
+  }
+
+  iso_file    = var.iso_file
+  unmount_iso = true
+
+  # Mount unattended install and build-time scripts.
+  additional_iso_files {
+    device           = "sata3"
+    iso_storage_pool = "local"
+    cd_files = [
+      "autounattend.xml",
+      "scripts/enable-winrm.ps1",
+      "scripts/install-qemu-guest-agent.ps1",
+      "scripts/cleanup.ps1"
+    ]
+    cd_label = "gha_build"
+  }
+
+  communicator   = "winrm"
+  winrm_username = var.winrm_username
+  winrm_password = var.winrm_password
+  winrm_timeout  = "8h"
+
+  boot_wait = "5s"
+
+  # Packer will connect over WinRM after autounattend enables it.
+  shutdown_command = "powershell -ExecutionPolicy Bypass -File C:\\Windows\\Temp\\cleanup.ps1"
+}
+
+build {
+  sources = ["source.proxmox-iso.win_gha_core"]
+
+  provisioner "powershell" {
+    scripts = [
+      "scripts/install-qemu-guest-agent.ps1",
+      "scripts/cleanup.ps1"
+    ]
+  }
+}

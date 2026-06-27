@@ -1,0 +1,36 @@
+# Normalize line endings — WSL host with Windows interop; keep everything LF in the repo.
+* text=auto eol=lf
+
+# Source
+*.cs    text eol=lf
+*.csproj text eol=lf
+*.sln   text eol=lf -text
+*.props text eol=lf
+*.targets text eol=lf
+
+# Native
+*.c     text eol=lf
+*.h     text eol=lf
+*.cpp   text eol=lf
+*.hpp   text eol=lf
+*.cmake text eol=lf
+CMakeLists.txt text eol=lf
+*.def   text eol=lf
+
+# Scripts / config / docs
+*.sh    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+
+# Binary — never normalize
+*.dll   binary
+*.so    binary
+*.dylib binary
+*.lib   binary
+*.exe   binary
+*.png   binary
+*.bin   binary
+*.dat   binary
+*.zip   binary

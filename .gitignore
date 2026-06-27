@@ -1,0 +1,49 @@
+# Packer
+packer_cache/
+*.log
+crash.log
+*.pkrvars.hcl
+*.auto.pkrvars.hcl
+
+# Terraform-style local vars, if added later
+*.tfvars
+*.tfvars.json
+
+# Ansible
+*.retry
+.vault-pass
+*.vault
+ansible/inventory/hosts.ini
+ansible/group_vars/windows.yml
+ansible/group_vars/linux.yml
+ansible/group_vars/vault.yml
+
+# Environment/secrets
+.env
+.env.*
+secrets/*
+!secrets/README.md
+
+# Local/editor/system files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.old
+# Fleet/local generated files
+ansible/inventory/fleet.ini
+ansible/group_vars/all.yml
+fleet.local.yml
+*.local.yml
+*.local.env
+orchestrator/node.local.env
+
+# Per-machine environment snapshot — local only.
+docs/environment.md

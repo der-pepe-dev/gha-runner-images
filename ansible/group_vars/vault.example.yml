@@ -1,0 +1,6 @@
+---
+# Copy this file to vault.yml and encrypt the real file with ansible-vault.
+# ansible-vault encrypt ansible/group_vars/vault.yml
+
+github_pat: "CHANGE_ME"
+gha_runner_password: "CHANGE_ME"
