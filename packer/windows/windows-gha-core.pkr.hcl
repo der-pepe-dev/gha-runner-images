@@ -41,6 +41,12 @@ variable "storage_pool" {
   description = "Proxmox storage pool for VM disk."
 }
 
+variable "iso_storage_pool" {
+  type        = string
+  default     = "local"
+  description = "Storage for the generated build-time CD (autounattend + scripts). Must allow ISO content; on a Ceph-only cluster use a CephFS storage."
+}
+
 variable "bridge" {
   type        = string
   default     = "vmbr0"
@@ -103,7 +109,7 @@ source "proxmox-iso" "win_gha_core" {
   # Mount unattended install and build-time scripts.
   additional_iso_files {
     device           = "sata3"
-    iso_storage_pool = "local"
+    iso_storage_pool = var.iso_storage_pool
     cd_files = [
       "autounattend.xml",
       "scripts/enable-winrm.ps1",
@@ -120,8 +126,9 @@ source "proxmox-iso" "win_gha_core" {
 
   boot_wait = "5s"
 
-  # Packer will connect over WinRM after autounattend enables it.
-  shutdown_command = "powershell -ExecutionPolicy Bypass -File C:\\Windows\\Temp\\cleanup.ps1"
+  # Packer connects over WinRM after autounattend enables it. The proxmox-iso builder
+  # stops the VM itself once provisioning finishes (it has no shutdown_command field),
+  # so cleanup.ps1 runs as the last provisioner and must NOT power the VM off.
 }
 
 build {

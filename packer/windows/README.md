@@ -13,3 +13,10 @@ This directory contains Packer skeletons for building Proxmox-hosted Windows Ser
 - Use example var files as a starting point.
 - Do not commit real `*.pkrvars.hcl` or `*.auto.pkrvars.hcl` files.
 - Runner registration should not be baked into a template.
+- **Build password must match in two places.** The `winrm_password` Packer var and the
+  `<AdministratorPassword>`/auto-logon password in `autounattend.xml` are the same
+  account. `autounattend.xml` is a static `cd_files` ISO — Packer cannot template it —
+  so if you change `winrm_password`, edit `autounattend.xml` to match or WinRM auth
+  (and the whole build) will fail. Both default to `CHANGE_ME_BUILD_PASSWORD`.
+- Templates build from a Windows Server **evaluation** ISO; the 180-day eval clock starts
+  at build. See `../../docs/windows-runner.md` for regeneration/rearm.

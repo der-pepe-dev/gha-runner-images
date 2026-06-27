@@ -24,6 +24,13 @@ orchestrator scripts are scaffolds with placeholder Proxmox/injection logic.
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-06-27: Repo audit fixes. Windows Packer templates now `packer validate` clean —
+  removed invalid `shutdown_command` (proxmox-iso has no such field; it never validated
+  before) and stripped `Stop-Computer` from cleanup.ps1 (it runs as a provisioner).
+  Fixed corrupted `runner_zip` path in windows-register-runner.yml (YAML double-quote
+  `\t`/`\a` escape). Added `-SkipCertificateCheck` to the PS clone scripts (self-signed
+  PVE). Doc/polish: README password-match note, trimmed unused `nas_runner_group` from
+  fleet.example.yml, annotated gitignored `environment.md` in index, PS verb rename.
 - 2026-06-27: Added Windows template eval-age tracking. Templates build from a
   Windows Server eval ISO (180-day clock from build). `orchestrator/check-windows-template-age.sh`
   + daily systemd timer (`gha-template-age-check.{service,timer}`) alert (no auto-rebuild)

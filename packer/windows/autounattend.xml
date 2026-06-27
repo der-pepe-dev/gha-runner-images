@@ -135,6 +135,8 @@
       </AutoLogon>
 
       <FirstLogonCommands>
+        <!-- Assumes the Packer additional_iso (cd_label "gha_build") mounts as D:.
+             If the install media/driver disks shift drive letters, adjust this path. -->
         <SynchronousCommand wcm:action="add">
           <Order>1</Order>
           <Description>Enable WinRM for Packer</Description>

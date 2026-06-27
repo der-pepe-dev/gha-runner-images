@@ -5,6 +5,26 @@ correction or hard-won lesson. Newest first.
 
 <!-- - YYYY-MM-DD: <what went wrong> -> <the rule to follow next time> -->
 
+### 2026-06-27: `proxmox-iso` has no `shutdown_command`; validate Packer from its dir
+
+**What went wrong:** The Windows templates carried `shutdown_command = "...cleanup.ps1"`,
+which the `proxmox-iso` builder rejects (`argument ... not expected`) — so they never
+validated. The builder stops the VM itself after provisioning. Also `cd_files` paths are
+resolved relative to the **current working directory**, not the template file, so
+`packer validate` must run from `packer/windows/`.
+
+**Rule:** For `proxmox-iso`, do cleanup as the last provisioner (no `Stop-Computer`/
+shutdown in it) and let the builder stop the VM — don't add `shutdown_command`. Run
+`packer validate -var-file=vars.example.pkrvars.hcl <tmpl>` from the template's directory.
+
+### 2026-06-27: Windows paths in YAML need single quotes
+
+**What went wrong:** `runner_zip: "C:\tools\actions-runner...zip"` — double-quoted YAML
+parsed `\t`→TAB and `\a`→BEL, corrupting the path to `C:<TAB>ools\x07ctions...`.
+
+**Rule:** Always single-quote Windows paths (`'C:\tools\...'`) or use forward slashes in
+YAML. Bare scalars are also safe; double quotes are the trap.
+
 ### Orchestrator is bash, not PowerShell (lean LXC)
 
 **Decision:** The local orchestrator runs on a tiny Debian/Ubuntu LXC (512MB-1GB). It

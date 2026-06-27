@@ -5,6 +5,10 @@
 .NOTES
   Sysprep is intentionally not run by default. Add it here only after testing
   your runner/template lifecycle and making sure cloned VMs get unique identity.
+
+  This runs as a Packer provisioner, so it must NOT power the VM off — Packer
+  needs WinRM alive to return, then performs the shutdown itself via the build's
+  `shutdown_command`. Do not add Stop-Computer/shutdown here.
 #>
 
 $ErrorActionPreference = 'Continue'
@@ -33,5 +37,4 @@ try {
 # Optional Sysprep location:
 # & "$env:SystemRoot\System32\Sysprep\Sysprep.exe" /generalize /oobe /shutdown /quiet
 
-Write-Host 'Cleanup complete. Shutting down.'
-Stop-Computer -Force
+Write-Host 'Cleanup complete. Packer will shut the VM down via shutdown_command.'

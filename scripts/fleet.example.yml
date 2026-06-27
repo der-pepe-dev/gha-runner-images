@@ -60,25 +60,7 @@ runners:
     template: windows
     labels: "self-hosted,windows,x64,dotnet10,proxmox,pve03,ephemeral"
 
-# Optional high-capacity NAS/server runner group.
-# Keep these labels opt-in so normal jobs stay on the lightweight Proxmox fleet.
-nas_runner_group:
-  enabled: false
-  orchestrator:
-    name: gha-nas-orch01
-    node: nas01
-    vmid: 491
-    manages:
-      - gha-nas-linux01
-      - gha-nas-win01
-  runners:
-    - name: gha-nas-linux01
-      node: nas01
-      vmid: 401
-      template: linux-beefy
-      labels: "self-hosted,linux,x64,dotnet10,nas,beefy,ephemeral"
-    - name: gha-nas-win01
-      node: nas01
-      vmid: 411
-      template: windows-buildtools
-      labels: "self-hosted,windows,x64,dotnet10,nas,beefy,vs-buildtools,ephemeral"
+# Optional high-capacity NAS/server runner group is managed separately, not by this
+# script — clone-runner-fleet.ps1 only reads `orchestrators` and `runners` above and
+# maps the `windows`/`linux` templates. To add NAS runners, give them their own
+# fleet file / orchestrator. See docs/nas-runner-group.md.

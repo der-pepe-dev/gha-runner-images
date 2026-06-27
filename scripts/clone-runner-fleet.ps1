@@ -49,7 +49,7 @@ $headers = @{
     Authorization = "PVEAPIToken=$ApiTokenId=$ApiToken"
 }
 
-function Clone-ProxmoxVm {
+function New-ProxmoxVmClone {
     param(
         [Parameter(Mandatory)]$Item,
         [Parameter(Mandatory)][int]$TemplateVmid
@@ -70,16 +70,18 @@ function Clone-ProxmoxVm {
 
     $uri = "$($fleet.proxmox_url)/nodes/$($Item.node)/qemu/$TemplateVmid/clone"
     Write-Host "Cloning template $TemplateVmid to $($Item.name) on $($Item.node) as VMID $($Item.vmid)"
-    Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $body
+    # -SkipCertificateCheck: PVE default certs are self-signed (mirrors curl -k in the
+    # orchestrator and insecure_skip_tls_verify in the Packer builds). PowerShell 7 only.
+    Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $body -SkipCertificateCheck
 }
 
 if ($IncludeOrchestrators -and $fleet.orchestrators) {
     foreach ($orch in $fleet.orchestrators) {
-        Clone-ProxmoxVm -Item $orch -TemplateVmid ([int]$fleet.orchestrator_template_vmid)
+        New-ProxmoxVmClone -Item $orch -TemplateVmid ([int]$fleet.orchestrator_template_vmid)
     }
 }
 
 foreach ($runner in $fleet.runners) {
     $templateVmid = if ($runner.template -eq 'windows') { [int]$fleet.windows_template_vmid } else { [int]$fleet.linux_template_vmid }
-    Clone-ProxmoxVm -Item $runner -TemplateVmid $templateVmid
+    New-ProxmoxVmClone -Item $runner -TemplateVmid $templateVmid
 }

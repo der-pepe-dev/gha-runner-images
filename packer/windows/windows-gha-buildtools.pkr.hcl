@@ -16,6 +16,10 @@ variable "proxmox_token" {
 variable "proxmox_node" { default = "pve" }
 variable "iso_file" { default = "local:iso/windows-server-2022.iso" }
 variable "storage_pool" { default = "local-lvm" }
+variable "iso_storage_pool" {
+  default     = "local"
+  description = "Storage for the generated build-time CD (autounattend + scripts). Must allow ISO content; on a Ceph-only cluster use a CephFS storage."
+}
 variable "bridge" { default = "vmbr0" }
 variable "vm_name" { default = "tmpl-win-gha-buildtools" }
 variable "winrm_username" { default = "Administrator" }
@@ -60,7 +64,7 @@ source "proxmox-iso" "win_gha_buildtools" {
 
   additional_iso_files {
     device           = "sata3"
-    iso_storage_pool = "local"
+    iso_storage_pool = var.iso_storage_pool
     cd_files = [
       "autounattend.xml",
       "scripts/enable-winrm.ps1",
@@ -76,7 +80,9 @@ source "proxmox-iso" "win_gha_buildtools" {
   winrm_timeout  = "8h"
 
   boot_wait = "5s"
-  shutdown_command = "powershell -ExecutionPolicy Bypass -File C:\\Windows\\Temp\\cleanup.ps1"
+  # The proxmox-iso builder stops the VM itself once provisioning finishes (it has no
+  # shutdown_command field), so cleanup.ps1 runs as the last provisioner and must NOT
+  # power the VM off.
 }
 
 build {

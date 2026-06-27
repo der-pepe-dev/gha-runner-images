@@ -33,4 +33,6 @@ $body = @{
 
 $uri = "$ProxmoxUrl/nodes/$Node/qemu/$SourceVmId/clone"
 Write-Host "Cloning template VMID $SourceVmId to VMID $NewVmId named $NewVmName"
-Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $body
+# -SkipCertificateCheck: PVE default certs are self-signed (mirrors curl -k in the
+# orchestrator and insecure_skip_tls_verify in the Packer builds). PowerShell 7 only.
+Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -Body $body -SkipCertificateCheck

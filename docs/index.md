@@ -16,7 +16,7 @@ Repository: `https://github.com/der-pepe-dev/gha-runner-images`
 
 - Start with this file, [[current-status]], [[instructions/agent-rules]], and [[tasks/lessons]].
 - Use [[context-map]] to pick only the relevant docs for the task.
-- Check [[environment]] before suggesting shell commands.
+- Check [[environment]] before suggesting shell commands (local-only, gitignored — generate with `scripts/snapshot-environment.sh`).
 - Create one file per active task under `tasks/` (parallel tasks supported).
 - Use [[tasks/todo]] as the durable backlog only.
 
@@ -38,10 +38,11 @@ Repository: `https://github.com/der-pepe-dev/gha-runner-images`
 ## Main documents
 
 - [[current-status]]
-- [[environment]]
+- [[environment]] — per-machine tool snapshot; local-only, gitignored (not on GitHub). Generate with `scripts/snapshot-environment.sh`
 - [[sketchpad]] — scratch capture for raw ideas (NOT durable; do not act on without promotion)
 
 - [[runner-architecture]] — two-stage Packer/Ansible model + fleet/orchestrator model
+- [[deploy]] — building templates from this host onto a Ceph-backed Proxmox cluster
 - [[consumers]] — projects using these runners + their tool requirements (hub)
 - [[linux-runner]] — Linux runner build/registration
 - [[windows-runner]] — Windows runner build/registration
