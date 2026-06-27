@@ -4,6 +4,8 @@ packer_cache/
 crash.log
 *.pkrvars.hcl
 *.auto.pkrvars.hcl
+# but DO commit the example var files (they carry no secrets, only placeholders).
+!*.example.pkrvars.hcl
 # Real autounattend holds the build/Administrator password — keep it local.
 # Commit only autounattend.xml.example.
 packer/windows/autounattend.xml
