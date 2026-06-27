@@ -39,6 +39,9 @@ lifecycle; 1 HA builder owns image regeneration (single cluster-wide template).
 - [ ] systemd timer on the builder: `git pull` + `packer build` of the single
       cluster-wide template per OS, on a fixed schedule (~60-90 days). Eval-age checker as
       a safety net.
+- [ ] Template handover (see ADR): build to a versioned VMID, flip a `current-template`
+      marker on success, orchestrators re-seed slots rolling/idle-only, retain N-1 then
+      delete. Confirm `full_clone: true` everywhere so slots are template-independent.
 
 ## Phase 5 — Confirm self-sustaining
 

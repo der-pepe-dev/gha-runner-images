@@ -50,6 +50,27 @@ dependency. In steady state the orchestrator operates on **actual per-slot VMs**
 This is the `snapshot-rollback` MODE already present in the orchestrator config;
 `destroy-reclone` remains a slower alternative.
 
+## Template handover (old -> new)
+
+Regenerating the template must not break running runners or point orchestrators at a
+half-built image. Key enabler: **slots are full clones** (`full_clone: true`), so a runner
+slot VM is independent of the template once created — the template is only consulted at
+re-seed. Handover is a rolling, pointer-based swap:
+
+1. **Build new, don't clobber.** The builder builds the new template to a **new (versioned)
+   VMID**, leaving the old one intact. A successful Packer build is the validation gate
+   (it booted and WinRM/SSH-connected), so a broken build never becomes "current".
+2. **Atomic pointer flip.** A small `current-template` marker (a value on CephFS, or a
+   Proxmox tag such as `gha-current`) names the live template VMID. The builder flips it
+   only after a successful build; orchestrators read it to know what to seed from.
+3. **Rolling drain re-seed.** Each orchestrator re-seeds a slot only when it is **idle**
+   (between jobs): drain → destroy old slot VM → full-clone from the new template → clean
+   snapshot → resume the rollback cycle. One slot at a time; in-flight jobs finish on the
+   old VM; no global downtime.
+4. **Retain N-1, then delete.** Keep the previous template as a rollback target (flip the
+   marker back if the new one misbehaves) until all slots have re-seeded and nothing
+   references it, then delete it.
+
 ## Consequences
 
 - **Pro:** single cluster-wide template (no redundant 3× builds or storage, matches Ceph);
