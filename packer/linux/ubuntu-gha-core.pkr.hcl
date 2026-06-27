@@ -127,6 +127,12 @@ build {
   # Generalize the image so clones get unique identity (machine-id, ssh host keys).
   provisioner "shell" {
     inline = [
+      # Install a first-boot oneshot that regenerates SSH host keys before sshd if they
+      # are missing. We can't rely on cloud-init for this on a clone (it may have no
+      # datasource), and without host keys sshd resets every connection.
+      "printf '%s\\n' '[Unit]' 'Description=Regenerate SSH host keys if missing' 'Before=ssh.service' 'ConditionPathExistsGlob=!/etc/ssh/ssh_host_*_key' '[Service]' 'Type=oneshot' 'ExecStart=/usr/bin/ssh-keygen -A' '[Install]' 'WantedBy=multi-user.target' | sudo tee /etc/systemd/system/regen-ssh-host-keys.service >/dev/null",
+      "sudo systemctl enable regen-ssh-host-keys.service",
+      # Now generalize: clones regenerate keys (via the oneshot) and a fresh machine-id.
       "sudo cloud-init clean --logs",
       "sudo rm -f /etc/ssh/ssh_host_*",
       "sudo truncate -s 0 /etc/machine-id",

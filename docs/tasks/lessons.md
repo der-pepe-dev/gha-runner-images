@@ -113,3 +113,14 @@ systemd unit/timer working with no rework; only `jq` needs installing.
 **Rule:** Keep the orchestrator on minimal Debian/Ubuntu + systemd. Run it
 **unprivileged** — it holds Proxmox and GitHub tokens and needs only outbound network.
 Don't "optimize" it onto Alpine; the consistency is worth more than the megabytes.
+
+### 2026-06-27: Generalized Linux template must self-regenerate SSH host keys
+
+**What went wrong:** The generalize step removed /etc/ssh/ssh_host_* but clones did not
+regenerate them (cloud-init has no datasource on a plain clone), so sshd reset every
+connection (`kex_exchange_identification: Connection reset by peer`).
+
+**Rule:** Don't rely on cloud-init for host-key regen on clones. Install a first-boot
+systemd oneshot (`Before=ssh.service`, `ConditionPathExistsGlob=!/etc/ssh/ssh_host_*_key`,
+`ExecStart=/usr/bin/ssh-keygen -A`) before removing the keys. Same idea applies to any
+"remove identity then regenerate on boot" generalize step.
