@@ -170,7 +170,12 @@ val_or_todo() { [ -n "$1" ] && printf '%s' "$1" || printf 'CHANGE_ME_%s' "$2"; }
 if [ "$INCLUDE_TOKEN" -eq 1 ]; then
   TOKEN_LINE="proxmox_token    = \"${PROXMOX_TOKEN}\""
 else
-  TOKEN_LINE='proxmox_token    = "CHANGE_ME"   # pass via -var/PKR_VAR_proxmox_token, or --include-token'
+  # Leave proxmox_token UNSET in the file: a -var-file value would override the
+  # PKR_VAR_proxmox_token env var (Packer precedence), so an assignment here would
+  # shadow the env/-var token and cause a 401. Pass the secret at build time instead.
+  # shellcheck disable=SC2016  # literal $PROXMOX_TOKEN is intentional doc text
+  TOKEN_LINE='# proxmox_token: set at build time via `-var "proxmox_token=$PROXMOX_TOKEN"`'
+  TOKEN_LINE="$TOKEN_LINE"$'\n#               or env PKR_VAR_proxmox_token, or re-run with --include-token'
 fi
 
 NODES_COMMENT="# cluster nodes: ${NODES[*]}"

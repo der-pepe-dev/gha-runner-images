@@ -124,7 +124,9 @@ files, then build. Or do it by hand — the committed examples use per-node `loc
 # packer/windows/local.pkrvars.hcl   (gitignored; do not commit)
 proxmox_url      = "https://pve01:8006/api2/json"
 proxmox_username = "packer@pve!packer"
-proxmox_token    = "REPLACE_ME"          # real secret, never committed
+# proxmox_token: leave it OUT of this file. A var-file value overrides the
+# PKR_VAR_proxmox_token env var, so pass the secret at build time instead:
+#   packer build -var-file=local.pkrvars.hcl -var "proxmox_token=$PROXMOX_TOKEN" ...
 proxmox_node     = "pve01"               # any node; template lands cluster-wide via Ceph
 
 iso_file         = "cephfs:iso/windows-server-2022.iso"   # CephFS, not local:
