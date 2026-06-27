@@ -29,8 +29,32 @@ if (-not $media) {
     exit 0
 }
 
-# 1. Install the virtio drivers. vioser is required so the guest agent can reach the
-#    host; pnputil installs only the ones matching present devices.
+# 1a. Pre-trust the virtio driver publisher (Red Hat) so the driver install does NOT
+#     pop an interactive "Would you like to install this device software?" dialog,
+#     which would hang the unattended build. Import the signer cert from a signed
+#     virtio driver into the machine TrustedPublisher (and Root) stores.
+try {
+    $sig = Get-ChildItem -Path $media -Recurse -Filter *.sys -ErrorAction SilentlyContinue |
+           ForEach-Object { Get-AuthenticodeSignature $_.FullName -ErrorAction SilentlyContinue } |
+           Where-Object { $_.SignerCertificate } |
+           Select-Object -First 1
+    if ($sig -and $sig.SignerCertificate) {
+        foreach ($storeName in 'TrustedPublisher', 'Root') {
+            $store = New-Object System.Security.Cryptography.X509Certificates.X509Store($storeName, 'LocalMachine')
+            $store.Open('ReadWrite')
+            $store.Add($sig.SignerCertificate)
+            $store.Close()
+        }
+        Write-Host "Trusted virtio driver publisher: $($sig.SignerCertificate.Subject)"
+    } else {
+        Write-Warning 'No signed virtio driver found to pre-trust; install may prompt.'
+    }
+} catch {
+    Write-Warning "Could not pre-trust virtio publisher: $($_.Exception.Message)"
+}
+
+# 1b. Install the virtio drivers. vioser is required so the guest agent can reach the
+#     host; pnputil installs only the ones matching present devices.
 Write-Host "Installing virtio drivers from $media"
 & pnputil /add-driver (Join-Path $media '*.inf') /subdirs /install
 Write-Host "pnputil exit code: $LASTEXITCODE"
