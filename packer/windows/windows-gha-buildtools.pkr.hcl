@@ -87,7 +87,15 @@ source "proxmox-iso" "win_gha_buildtools" {
   winrm_password = var.winrm_password
   winrm_timeout  = "8h"
 
-  boot_wait = "5s"
+  boot_wait = "3s"
+
+  # Spam <enter> to get past the UEFI "Press any key to boot from CD..." prompt;
+  # see windows-gha-core for details.
+  boot_command = [
+    "<enter><wait1><enter><wait1><enter><wait1><enter><wait1><enter>",
+    "<wait1><enter><wait1><enter><wait1><enter><wait1><enter><wait1><enter>"
+  ]
+
   # The proxmox-iso builder stops the VM itself once provisioning finishes (it has no
   # shutdown_command field), so cleanup.ps1 runs as the last provisioner and must NOT
   # power the VM off.

@@ -134,7 +134,15 @@ source "proxmox-iso" "win_gha_core" {
   winrm_password = var.winrm_password
   winrm_timeout  = "8h"
 
-  boot_wait = "5s"
+  boot_wait = "3s"
+
+  # The Windows ISO shows "Press any key to boot from CD or DVD..." under UEFI and waits
+  # only ~5s. Spam <enter> across that window so the VM boots the installer instead of
+  # falling through to the empty disk.
+  boot_command = [
+    "<enter><wait1><enter><wait1><enter><wait1><enter><wait1><enter>",
+    "<wait1><enter><wait1><enter><wait1><enter><wait1><enter><wait1><enter>"
+  ]
 
   # Packer connects over WinRM after autounattend enables it. The proxmox-iso builder
   # stops the VM itself once provisioning finishes (it has no shutdown_command field),
