@@ -101,17 +101,35 @@ else
     [ .[] | select((.type // "" | test("bridge";"i")) or (.iface // "" | test("^vmbr"))) | .iface ]
     | sort | .[0] // empty')"
 fi
+# Fallback: /nodes/<node>/network does not list SDN VNets (and may hide bridges on
+# some setups), so derive the bridge from an existing VM's net config — whatever a
+# running VM attaches to is exactly what a new clone should use. Reads `bridge=` from
+# net0..net31 of the first non-template VM.
+bridge_from_existing_vm() {
+  local vms vmid vnode cfg br
+  vms="$(pve_get "/cluster/resources?type=vm" 2>/dev/null || true)"
+  [ -n "$vms" ] || return 0
+  while read -r vmid vnode; do
+    if [ -z "$vmid" ] || [ -z "$vnode" ]; then continue; fi
+    cfg="$(pve_get "/nodes/${vnode}/qemu/${vmid}/config" 2>/dev/null || true)"
+    br="$(printf '%s' "$cfg" | jq -r '[to_entries[] | select(.key|test("^net[0-9]+$")) | .value] | .[]?' 2>/dev/null \
+          | grep -oE 'bridge=[^,]+' | head -1 | cut -d= -f2)"
+    if [ -n "$br" ]; then printf '%s' "$br"; return 0; fi
+  done < <(printf '%s' "$vms" | jq -r '.[] | select(.template != 1) | "\(.vmid) \(.node)"')
+}
+
 if [ -z "$BRIDGE" ]; then
-  # No bridge in the API response. Bridges live in the node network config, which
-  # needs Sys.Audit to read; physical NICs are detected at runtime and show without
-  # it. So a missing bridge here usually means the token lacks Sys.Audit, not that
-  # there is no bridge. Fall back to vmbr0 (the Proxmox default) and flag it.
-  echo "Detected bridge: <none in API response> — defaulting to vmbr0 (verify)" >&2
+  echo "Detected bridge: <none in node network list> — checking existing VMs ..." >&2
   if [ -n "$NETWORK_JSON" ]; then
     echo "  network entries returned: $(printf '%s' "$NETWORK_JSON" | jq -rc 'if type=="array" then [.[]|{iface,type}] else . end' 2>/dev/null)" >&2
-    echo "  no bridge shown -> grant the token Sys.Audit on /nodes to detect it" >&2
   fi
-  BRIDGE="vmbr0"
+  BRIDGE="$(bridge_from_existing_vm)"
+  if [ -n "$BRIDGE" ]; then
+    echo "  bridge from an existing VM: ${BRIDGE}" >&2
+  else
+    echo "  no VM net config readable — defaulting to vmbr0 (verify)" >&2
+    BRIDGE="vmbr0"
+  fi
 else
   echo "Detected bridge: ${BRIDGE}" >&2
 fi
