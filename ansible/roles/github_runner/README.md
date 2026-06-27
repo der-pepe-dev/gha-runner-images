@@ -21,7 +21,9 @@ with `gather_facts: false`.
 | `actions_runner_dir` | `/opt/actions-runner` | Install dir (group_vars set Windows path) |
 | `actions_work_dir` | `/opt/actions-work` | Work dir |
 | `runner_user` | `gha-runner` | Local service account |
-| `github_owner` / `github_repo` | `CHANGE_ME_*` | Registration target |
+| `registration_scope` | `org` | `org` (org-wide runner) or `repo` (single repo) |
+| `github_owner` | `CHANGE_ME_OWNER` | Org name (org scope) or owner (repo scope) |
+| `github_repo` | `CHANGE_ME_REPO` | Repo name — only used when scope is `repo` |
 | `runner_name` | `inventory_hostname` | Runner name |
 | `runner_labels` | `self-hosted,proxmox,dotnet10,ephemeral` | Labels |
 | `runner_ephemeral` | `false` | `--ephemeral`, no persistent service |

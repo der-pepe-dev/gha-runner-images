@@ -11,9 +11,22 @@ actions_work_dir: /opt/actions-work
 runner_user: gha-runner
 
 # Registration target. Override these (CHANGE_ME guards against accidental runs).
+# registration_scope: "org" registers an org-wide runner; "repo" a single-repo runner.
+registration_scope: "org"
 github_owner: "CHANGE_ME_OWNER"
-github_repo: "CHANGE_ME_REPO"
+github_repo: "CHANGE_ME_REPO"        # only used when registration_scope == "repo"
 github_repo_url: "https://github.com/{{ github_owner }}/{{ github_repo }}"
+
+# Derived endpoints (do not usually override). The registration-token API and the
+# runner --url differ between org and repo scope.
+github_runner_token_url: >-
+  {{ 'https://api.github.com/orgs/' + github_owner + '/actions/runners/registration-token'
+     if registration_scope == 'org'
+     else 'https://api.github.com/repos/' + github_owner + '/' + github_repo + '/actions/runners/registration-token' }}
+github_runner_url: >-
+  {{ 'https://github.com/' + github_owner
+     if registration_scope == 'org'
+     else github_repo_url }}
 
 # Runner identity. Labels are project-neutral by default so org runners are reusable.
 runner_name: "{{ inventory_hostname }}"

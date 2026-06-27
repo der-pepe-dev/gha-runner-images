@@ -18,7 +18,7 @@
 
 - name: Request GitHub runner registration token
   ansible.builtin.uri:
-    url: "https://api.github.com/repos/{{ github_owner }}/{{ github_repo }}/actions/runners/registration-token"
+    url: "{{ github_runner_token_url | trim }}"
     method: POST
     headers:
       Authorization: "Bearer {{ github_pat }}"
@@ -52,7 +52,7 @@
   ansible.builtin.command: >
     ./config.sh
     --unattended
-    --url {{ github_repo_url }}
+    --url {{ github_runner_url | trim }}
     --token {{ runner_token }}
     --name {{ runner_name }}
     --labels {{ runner_labels }}
