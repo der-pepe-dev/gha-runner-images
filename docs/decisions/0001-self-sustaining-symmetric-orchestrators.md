@@ -38,6 +38,25 @@ Consequences of "each node builds its own template":
 
 WSL's only roles: write code, the first bootstrap build/clone, and `git push`.
 
+## Reset strategy: snapshot-rollback of actual VMs (not per-job cloning)
+
+Clean-per-job ephemeral needs fast derivation (seconds) — a full Packer build (~30-40
+min) cannot run per job. So the golden image (Packer's template output) is only the
+**periodic seed**, not a per-job dependency. In steady state the orchestrator operates on
+**actual per-slot VMs**:
+
+- Create each runner slot **once** as a real VM (single clone from the node's golden
+  image), then take a **clean snapshot** (OS + tooling + runner binaries, *unregistered*).
+- **Per job:** rollback to the clean snapshot → inject a fresh org registration token →
+  register `--ephemeral` → run one job → rollback. No per-job clone, no template touch.
+- **Refresh (~60-90 days):** rebuild the golden image (Packer) → re-seed / re-snapshot the
+  slot VMs to pick up updates and reset the Windows eval clock.
+
+This is the `snapshot-rollback` MODE already present in the orchestrator config;
+`destroy-reclone` (clone fresh from template each job) remains an alternative but is
+slower and unnecessary here. Either way the template is a build artifact, not a hot-path
+dependency.
+
 ## Consequences
 
 - **Pro:** no single "builder" SPOF; every node identical and self-contained; the model is
