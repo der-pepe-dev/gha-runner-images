@@ -101,11 +101,19 @@ else
     [ .[] | select((.type // "" | test("bridge";"i")) or (.iface // "" | test("^vmbr"))) | .iface ]
     | sort | .[0] // empty')"
 fi
-echo "Detected bridge: ${BRIDGE:-<none found — set bridge manually>}" >&2
-if [ -z "$BRIDGE" ] && [ -n "$NETWORK_JSON" ]; then
-  # Diagnostic: show what the API actually returned so the filter can be fixed.
-  echo "  network entries returned: $(printf '%s' "$NETWORK_JSON" | jq -rc 'if type=="array" then [.[]|{iface,type}] else . end' 2>/dev/null)" >&2
-  echo "  (if empty [], the token likely lacks Sys.Audit on /nodes)" >&2
+if [ -z "$BRIDGE" ]; then
+  # No bridge in the API response. Bridges live in the node network config, which
+  # needs Sys.Audit to read; physical NICs are detected at runtime and show without
+  # it. So a missing bridge here usually means the token lacks Sys.Audit, not that
+  # there is no bridge. Fall back to vmbr0 (the Proxmox default) and flag it.
+  echo "Detected bridge: <none in API response> — defaulting to vmbr0 (verify)" >&2
+  if [ -n "$NETWORK_JSON" ]; then
+    echo "  network entries returned: $(printf '%s' "$NETWORK_JSON" | jq -rc 'if type=="array" then [.[]|{iface,type}] else . end' 2>/dev/null)" >&2
+    echo "  no bridge shown -> grant the token Sys.Audit on /nodes to detect it" >&2
+  fi
+  BRIDGE="vmbr0"
+else
+  echo "Detected bridge: ${BRIDGE}" >&2
 fi
 
 # --- ISOs present ------------------------------------------------------------
