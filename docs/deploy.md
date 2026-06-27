@@ -121,18 +121,22 @@ cluster-wide.
 
 ## After the build: clone the fleet
 
-With templates on Ceph, every node can clone them. Point the fleet definition at the Ceph
-RBD pool and clone:
+With templates on Ceph, every node can clone them. Re-run `discover-proxmox.sh` now that
+the templates exist — it detects their VMIDs and writes `scripts/fleet.local.yml` (one
+Linux/Windows/orchestrator set per node, storage pointed at the RBD pool):
 
 ```bash
-# scripts/fleet.local.yml  (copy from fleet.example.yml; gitignored)
-#   proxmox_url: https://pve01:8006/api2/json
-#   storage: ceph-vm            # RBD pool
-#   full_clone: true            # independent disks; linked clones need same-pool base
-#   windows_template_vmid / linux_template_vmid: <the built template VMIDs>
+PROXMOX_URL=https://pve01:8006/api2/json \
+PROXMOX_TOKEN_ID='packer@pve!packer' PROXMOX_TOKEN='...' \
+  scripts/discover-proxmox.sh --force      # --force to refresh existing files
+
+# Review scripts/fleet.local.yml, then clone:
 PROXMOX_TOKEN_ID='packer@pve!packer' PROXMOX_TOKEN='...' \
   pwsh scripts/clone-runner-fleet.ps1 -FleetFile scripts/fleet.local.yml
 ```
+
+(Or copy `fleet.example.yml` → `fleet.local.yml` and fill it by hand. `full_clone: true`
+gives independent disks; `storage` is the RBD pool.)
 
 Then register runners on the **clones only** (never the template) with
 `ansible/playbooks/{linux,windows}-register-runner.yml`. See [[runner-architecture]] and
