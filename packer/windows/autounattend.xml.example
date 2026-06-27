@@ -144,13 +144,13 @@
         <SynchronousCommand wcm:action="add">
           <Order>1</Order>
           <Description>Install QEMU guest agent (so Packer can discover the VM IP)</Description>
-          <CommandLine>cmd /c "for %d in (D E F G H I J) do @if exist %d:\install-qemu-guest-agent.ps1 powershell -ExecutionPolicy Bypass -File %d:\install-qemu-guest-agent.ps1"</CommandLine>
+          <CommandLine>powershell -ExecutionPolicy Bypass -Command "Get-PSDrive -PSProvider FileSystem | ForEach-Object { $p = $_.Root + 'install-qemu-guest-agent.ps1'; if (Test-Path $p) { &amp; $p } }"</CommandLine>
           <RequiresUserInput>false</RequiresUserInput>
         </SynchronousCommand>
         <SynchronousCommand wcm:action="add">
           <Order>2</Order>
           <Description>Enable WinRM for Packer</Description>
-          <CommandLine>cmd /c "for %d in (D E F G H I J) do @if exist %d:\enable-winrm.ps1 powershell -ExecutionPolicy Bypass -File %d:\enable-winrm.ps1"</CommandLine>
+          <CommandLine>powershell -ExecutionPolicy Bypass -Command "Get-PSDrive -PSProvider FileSystem | ForEach-Object { $p = $_.Root + 'enable-winrm.ps1'; if (Test-Path $p) { &amp; $p } }"</CommandLine>
           <RequiresUserInput>false</RequiresUserInput>
         </SynchronousCommand>
       </FirstLogonCommands>
