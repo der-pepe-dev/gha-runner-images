@@ -54,6 +54,7 @@ Read when editing playbooks/roles under `ansible/`.
 Read when touching Proxmox templating, cloning, or host config.
 
 - [[proxmox]]
+- [[deploy]] — building/deploying templates onto the cluster (Ceph, ISO upload, API reachability)
 
 ## Tooling / validation
 
