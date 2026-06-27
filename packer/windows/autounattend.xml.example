@@ -138,19 +138,19 @@
       </AutoLogon>
 
       <FirstLogonCommands>
-        <!-- Assumes the Packer build CD (cd_label "gha_build") mounts as D:. The
-             install-qemu-guest-agent script auto-finds the virtio-win ISO by drive
-             letter, so its mount point does not matter. Adjust D: if media shifts. -->
+        <!-- Search every drive for the scripts instead of hardcoding a CD letter:
+             with the install/build/virtio ISOs mounted, the build CD is not reliably
+             D:. The loops run the first copy of each script they find. -->
         <SynchronousCommand wcm:action="add">
           <Order>1</Order>
           <Description>Install QEMU guest agent (so Packer can discover the VM IP)</Description>
-          <CommandLine>powershell -ExecutionPolicy Bypass -File D:\install-qemu-guest-agent.ps1</CommandLine>
+          <CommandLine>cmd /c "for %d in (D E F G H I J) do @if exist %d:\install-qemu-guest-agent.ps1 powershell -ExecutionPolicy Bypass -File %d:\install-qemu-guest-agent.ps1"</CommandLine>
           <RequiresUserInput>false</RequiresUserInput>
         </SynchronousCommand>
         <SynchronousCommand wcm:action="add">
           <Order>2</Order>
           <Description>Enable WinRM for Packer</Description>
-          <CommandLine>powershell -ExecutionPolicy Bypass -File D:\enable-winrm.ps1</CommandLine>
+          <CommandLine>cmd /c "for %d in (D E F G H I J) do @if exist %d:\enable-winrm.ps1 powershell -ExecutionPolicy Bypass -File %d:\enable-winrm.ps1"</CommandLine>
           <RequiresUserInput>false</RequiresUserInput>
         </SynchronousCommand>
       </FirstLogonCommands>
