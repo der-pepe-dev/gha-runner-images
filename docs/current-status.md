@@ -24,6 +24,12 @@ orchestrator scripts are scaffolds with placeholder Proxmox/injection logic.
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-06-27: **First Windows golden template built** (`tmpl-win-gha-core`, VMID 106)
+  via `packer build` onto the Ceph-backed pve1/2/3 cluster. Full working recipe (OVMF,
+  SATA/e1000, virtio-win ISO, FirstLogon guest-agent + drive-search, cert pre-trust,
+  exit-0 hygiene, build-token privileges incl. SDN.Use) captured in lessons.md. Build is
+  now reproducible. Next: re-run discovery to generate fleet.local.yml, then clone +
+  register a runner.
 - 2026-06-27: Filled `dotnet_sdk` and `github_runner` roles (previously README stubs).
   Both branch Linux/Windows via `ansible_connection` (works with gather_facts:false).
   github_runner keeps the persistent-service behavior with an optional

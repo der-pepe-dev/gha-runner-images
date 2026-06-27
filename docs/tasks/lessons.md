@@ -5,6 +5,50 @@ correction or hard-won lesson. Newest first.
 
 <!-- - YYYY-MM-DD: <what went wrong> -> <the rule to follow next time> -->
 
+### 2026-06-27: Windows Packer build on Proxmox — full working recipe
+
+First successful Windows template (`tmpl-win-gha-core`, VMID 106) took a long chain of
+fixes. The complete set of requirements, so the next build (buildtools, rebuilds) just
+works:
+
+**Build host (WSL2):** install `xorriso` — Packer builds the `cd_files` CD locally before
+upload; without it: "could not find a supported CD ISO creation command".
+
+**Proxmox token privileges** (`packer@pve`, token `--privsep 0`):
+`PVEVMAdmin` on `/`, `PVEDatastoreAdmin` on `/storage` (AllocateTemplate, to upload the
+build CD), `PVESDNUser` on `/sdn` (SDN-managed bridges). Pass the secret with
+`-var "proxmox_token=$PROXMOX_TOKEN"` — a var-file value overrides `PKR_VAR_*`.
+
+**VM hardware (in the .pkr.hcl):**
+- `bios = "ovmf"` + `efi_config` — autounattend uses a GPT layout; legacy SeaBIOS fails
+  `<DiskConfiguration>`.
+- `boot_command` spamming `<enter>` — get past the UEFI "Press any key to boot from CD".
+- Disk `type = "sata"` and NIC `model = "e1000"` — WinPE/clean Windows has no virtio
+  driver, so a virtio-scsi disk is invisible at install and a virtio NIC has no network.
+- Mount the **virtio-win ISO** (`virtio_iso`) — needed for the guest agent.
+
+**autounattend (gitignored; commit only `.example`):**
+- Admin password must equal `winrm_password` (it becomes the template's Administrator
+  password); mismatch → infinite "Waiting for WinRM".
+- FirstLogon must **search drives** for the scripts (PowerShell `Get-PSDrive`), not
+  hardcode `D:` — multiple mounted ISOs shift the build CD's letter.
+- FirstLogon installs the QEMU guest agent (Proxmox builder discovers the VM IP via the
+  agent; it must be up *before* WinRM), then enables WinRM.
+
+**Guest agent install (`install-qemu-guest-agent.ps1`):**
+- Install virtio drivers via `pnputil /add-driver ... /subdirs /install` first — the agent
+  reaches the host over virtio-serial (vioser); MSI alone → "agent not running".
+- Pre-trust the Red Hat publisher cert from the **`.cat`** files (virtio is catalog-signed;
+  `.sys` have no embedded signature) into machine TrustedPublisher+Root, or the
+  "install this device software?" dialog hangs the unattended build.
+- End best-effort scripts with `exit 0` — `pnputil` returns non-zero when bundled drivers
+  match no device, which would otherwise fail the provisioner.
+
+**Rule:** the guest agent + virtio drivers run at FirstLogon (needed for IP discovery), so
+do NOT also list `install-qemu-guest-agent.ps1` as a provisioner. `cleanup.ps1` clears
+`C:\Windows\Temp`, which deletes Packer's env-vars helper — keep it the LAST provisioner
+(cosmetic error only).
+
 ### 2026-06-27: SDN-managed bridges — hidden from /network, need SDN.Use
 
 **What went wrong:** `vmbr0` never appeared in `/nodes/<node>/network` (only physical
