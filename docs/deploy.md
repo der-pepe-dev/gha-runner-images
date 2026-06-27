@@ -143,6 +143,10 @@ once that skeleton is completed.
 
 ## Build
 
+Packer builds the `cd_files` ISO locally before uploading, so the build host needs
+`xorriso` (`apt install xorriso`) — Windows builds fail with "could not find a supported
+CD ISO creation command" without it.
+
 ```bash
 cd packer/windows
 cp autounattend.xml.example autounattend.xml   # gitignored; set the Administrator

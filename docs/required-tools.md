@@ -13,6 +13,7 @@ and committed. For what a *specific* machine currently has, see [[environment]]
 |------|---------|------------------------|
 | `packer` | Build/validate VM image templates | HashiCorp apt repo → `apt install packer` |
 | Proxmox Packer plugin | `github.com/hashicorp/proxmox` >= 1.2.3 | `packer init packer/linux/ubuntu-gha-core.pkr.hcl` |
+| `xorriso` | Build the `cd_files` ISO (autounattend + scripts) locally before upload; Windows builds fail without it | `apt install xorriso` |
 | `ansible` | Provision cloned VMs | `pipx install --include-deps ansible` |
 | `ansible-playbook` | Run/syntax-check playbooks | bundled with `ansible` |
 | `ansible-vault` | Encrypt/decrypt real secrets | bundled with `ansible` |
