@@ -2,7 +2,7 @@
 
 Packer + Ansible automation for building Proxmox-hosted GitHub Actions self-hosted runner images
 
-Repository: `https://github.com/der-pepe/gha-runner-images`
+Repository: `https://github.com/der-pepe-dev/gha-runner-images`
 
 ## Main goals
 
@@ -24,6 +24,7 @@ Repository: `https://github.com/der-pepe/gha-runner-images`
 
 - [[instructions/agent-rules]]
 - [[instructions/cli-tooling]]
+- [[required-tools]] — tools a management host must install to build/validate
 - [[context-map]]
 
 ## Task tracking
