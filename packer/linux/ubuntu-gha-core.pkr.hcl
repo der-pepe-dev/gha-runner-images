@@ -42,6 +42,10 @@ variable "install_updates" {
   default     = true
   description = "Run apt dist-upgrade during the build. Set false for fast test builds."
 }
+variable "runner_version" {
+  default     = "2.329.0"
+  description = "Pinned GitHub Actions runner version to bake into the image (unregistered)."
+}
 
 source "proxmox-iso" "ubuntu_gha_core" {
   proxmox_url              = var.proxmox_url
@@ -122,6 +126,30 @@ build {
         "sudo DEBIAN_FRONTEND=noninteractive apt-get -y dist-upgrade",
       ]
     }
+  }
+
+  # Bake the GitHub Actions runner (UNREGISTERED) + the ephemeral waiter, so a cloned
+  # slot only needs the orchestrator to inject /etc/gha-runner/env and boot.
+  provisioner "file" {
+    source      = "../../orchestrator/bootstrap/linux-runner-once.sh"
+    destination = "/tmp/linux-runner-once.sh"
+  }
+  provisioner "file" {
+    source      = "../../orchestrator/bootstrap/gha-runner-waiter.service"
+    destination = "/tmp/gha-runner-waiter.service"
+  }
+  provisioner "shell" {
+    inline = [
+      "sudo useradd -m -s /bin/bash gha-runner || true",
+      "sudo mkdir -p /opt/actions-runner /opt/actions-work /opt/gha-runner /etc/gha-runner",
+      "curl -fsSL -o /tmp/runner.tar.gz https://github.com/actions/runner/releases/download/v${var.runner_version}/actions-runner-linux-x64-${var.runner_version}.tar.gz",
+      "sudo tar -xzf /tmp/runner.tar.gz -C /opt/actions-runner",
+      "sudo /opt/actions-runner/bin/installdependencies.sh",
+      "sudo install -m 0755 /tmp/linux-runner-once.sh /opt/gha-runner/linux-runner-once.sh",
+      "sudo chown -R gha-runner:gha-runner /opt/actions-runner /opt/actions-work",
+      "sudo install -m 0644 /tmp/gha-runner-waiter.service /etc/systemd/system/gha-runner-waiter.service",
+      "sudo systemctl enable gha-runner-waiter.service",
+    ]
   }
 
   # Generalize the image so clones get unique identity (machine-id, ssh host keys).

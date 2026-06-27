@@ -15,7 +15,7 @@ Implements the self-sustaining ephemeral runner loop per
 
 ## Remaining (needs a template rebuild)
 
-- [ ] **Bake the runner into the Linux template** (Packer): create the `gha-runner` user,
+- [x] **Bake the runner into the Linux template** (Packer): create the `gha-runner` user,
       download + extract the actions-runner package to `/opt/actions-runner` (config.sh
       present, NOT registered), install `linux-runner-once.sh` to `/opt/gha-runner/`,
       install + enable `gha-runner-waiter.service`. Keep the runner UNREGISTERED in the
