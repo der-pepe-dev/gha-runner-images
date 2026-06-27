@@ -19,9 +19,9 @@ packer/windows/autounattend.xml
 .vault-pass
 *.vault
 ansible/inventory/hosts.ini
-ansible/group_vars/windows.yml
-ansible/group_vars/linux.yml
-ansible/group_vars/vault.yml
+ansible/inventory/group_vars/windows.yml
+ansible/inventory/group_vars/linux.yml
+ansible/inventory/group_vars/vault.yml
 
 # Environment/secrets
 .env
@@ -44,7 +44,7 @@ Desktop.ini
 *.old
 # Fleet/local generated files
 ansible/inventory/fleet.ini
-ansible/group_vars/all.yml
+ansible/inventory/group_vars/all.yml
 fleet.local.yml
 *.local.yml
 *.local.env
