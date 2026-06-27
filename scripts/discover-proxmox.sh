@@ -90,9 +90,18 @@ echo "Detected storage_pool (VM disk): ${STORAGE_POOL:-<none found>}" >&2
 echo "Detected iso_storage_pool:       ${ISO_STORAGE_POOL:-<none found>}" >&2
 
 # --- Bridges -----------------------------------------------------------------
-BRIDGE="$(pve_get "/nodes/${NODE}/network" \
-  | jq -r '[ .[] | select(.type=="bridge") | .iface ] | sort | .[0] // empty')"
-echo "Detected bridge: ${BRIDGE:-<none found>}" >&2
+# Match Linux bridges, OVS bridges, or anything named vmbr* — covers the common
+# setups. Surface a hint if the network query itself failed (e.g. missing perms).
+NETWORK_JSON="$(pve_get "/nodes/${NODE}/network" 2>/dev/null || true)"
+if [ -z "$NETWORK_JSON" ] || [ "$NETWORK_JSON" = "null" ]; then
+  echo "WARN could not read /nodes/${NODE}/network (token perms? needs Sys.Audit)" >&2
+  BRIDGE=""
+else
+  BRIDGE="$(printf '%s' "$NETWORK_JSON" | jq -r '
+    [ .[] | select((.type // "" | test("bridge";"i")) or (.iface // "" | test("^vmbr"))) | .iface ]
+    | sort | .[0] // empty')"
+fi
+echo "Detected bridge: ${BRIDGE:-<none found — set bridge manually>}" >&2
 
 # --- ISOs present ------------------------------------------------------------
 # List iso volids in the detected ISO storage (fall back to scanning all storages).
