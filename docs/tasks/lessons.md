@@ -5,6 +5,21 @@ correction or hard-won lesson. Newest first.
 
 <!-- - YYYY-MM-DD: <what went wrong> -> <the rule to follow next time> -->
 
+### 2026-07-01: Ephemeral runner — bake a CURRENT version + --disableupdate
+
+**What went wrong (two linked failures):**
+1. Without `--disableupdate`, the baked runner auto-updates on first connect; the restart
+   drops the one-shot `--ephemeral` registration → "Failed to create a session ...
+   registration has been deleted" → no job, VM shuts down.
+2. With `--disableupdate` but an OLD baked version (2.329.0), GitHub refuses it:
+   "Runner version vX is deprecated and cannot receive messages" → same dead end.
+
+**Rule:** For ephemeral runners, use BOTH: `config --ephemeral --disableupdate` AND bake a
+**current** runner version (query `actions/runner` latest; bumped 2.329.0 → 2.335.1).
+Templates are rebuilt each regen cycle, so re-pin to the latest at each rebuild to stay
+ahead of GitHub's deprecation window. Verified end-to-end: register → online → run a
+queued job → ephemeral deregister → shutdown → ready to re-cycle.
+
 ### 2026-06-27: Windows Packer build on Proxmox — full working recipe
 
 First successful Windows template (`tmpl-win-gha-core`, VMID 106) took a long chain of
