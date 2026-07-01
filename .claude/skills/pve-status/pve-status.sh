@@ -31,6 +31,8 @@ AUTH="Authorization: PVEAPIToken=${PROXMOX_TOKEN_ID}=${PROXMOX_TOKEN}"
 get()  { curl -fsS -k -H "$AUTH" "${PROXMOX_URL}$1"; }
 post() { curl -fsS -k -H "$AUTH" -X POST "${PROXMOX_URL}$1"; }
 
+BYTES_PER_GB=1073741824
+
 # Resolve a VM's node from /cluster/resources.
 node_of() {
   get "/cluster/resources?type=vm" | jq -r --arg id "$1" '.data[] | select(.vmid==($id|tonumber)) | .node' | head -1
@@ -38,7 +40,7 @@ node_of() {
 
 overview() {
   echo "# Nodes"
-  get "/nodes" | jq -r '.data[] | "  \(.node)  \(.status)  cpu=\((.cpu*100|floor))%  mem=\((.mem/1073741824)|floor)/\((.maxmem/1073741824)|floor)GB"'
+  get "/nodes" | jq -r --argjson gb "$BYTES_PER_GB" '.data[] | "  \(.node)  \(.status)  cpu=\((.cpu*100|floor))%  mem=\((.mem/$gb)|floor)/\((.maxmem/$gb)|floor)GB"'
   echo
   echo "# VMs / templates (vmid  name  node  status  tmpl)"
   get "/cluster/resources?type=vm" \
@@ -54,7 +56,8 @@ templates() {
 }
 
 snapshots() {
-  local vmid="$1" node; node="$(node_of "$vmid")"
+  local vmid="$1" node="${2:-}"
+  [ -n "$node" ] || node="$(node_of "$vmid")"
   [ -n "$node" ] || { echo "vm $vmid not found" >&2; return 1; }
   echo "# Snapshots for $vmid (node $node)"
   get "/nodes/${node}/qemu/${vmid}/snapshot" \
@@ -62,7 +65,8 @@ snapshots() {
 }
 
 agent() {
-  local vmid="$1" node; node="$(node_of "$vmid")"
+  local vmid="$1" node="${2:-}"
+  [ -n "$node" ] || node="$(node_of "$vmid")"
   [ -n "$node" ] || { echo "vm $vmid not found" >&2; return 1; }
   if post "/nodes/${node}/qemu/${vmid}/agent/ping" >/dev/null 2>&1; then
     echo "agent: responding"
@@ -82,8 +86,8 @@ vm() {
     | jq -r '.data | "  status: \(.status)   uptime: \(.uptime // 0)s   tmpl: \(.template // 0)"'
   get "/nodes/${node}/qemu/${vmid}/config" \
     | jq -r '.data | "  cpu: \(.cpu // "default")   scsihw: \(.scsihw // "-")   net0: \(.net0 // "-")   meta: \(.meta // "-")"'
-  echo; agent "$vmid"
-  echo; snapshots "$vmid"
+  echo; agent "$vmid" "$node"
+  echo; snapshots "$vmid" "$node"
 }
 
 case "${1:-overview}" in
