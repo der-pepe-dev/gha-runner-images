@@ -50,8 +50,13 @@ variable "runner_version" {
 # CI toolchain baked into the image (ephemeral runners can't install per-job). Derived
 # from docs/consumers.md; extend here + record the consumer row in the same change.
 variable "runner_apt_packages" {
-  default     = "build-essential cmake ninja-build mingw-w64 binutils gdb git curl wget unzip zip jq ca-certificates pkg-config sqlite3 ffmpeg python3 python3-pip python3-venv"
+  # clang + zlib1g-dev are the Native AOT Linux prereqs.
+  default     = "build-essential clang zlib1g-dev cmake ninja-build mingw-w64 binutils gdb git curl wget unzip zip jq ca-certificates pkg-config sqlite3 ffmpeg python3 python3-pip python3-venv"
   description = "Space-separated apt packages installed into the runner image."
+}
+variable "dotnet_workloads" {
+  default     = ""
+  description = "Space-separated .NET workloads to install (e.g. 'android wasm-tools'). Empty = none."
 }
 variable "dotnet_channel" {
   default     = "10.0"
@@ -61,6 +66,11 @@ variable "install_powershell" {
   type        = bool
   default     = true
   description = "Install PowerShell 7 (consumers.md lists it for all runners)."
+}
+variable "install_nodejs" {
+  type        = bool
+  default     = true
+  description = "Install Node.js current LTS from NodeSource."
 }
 
 source "proxmox-iso" "ubuntu_gha_core" {
@@ -153,7 +163,11 @@ build {
       "sudo apt-get update",
       "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ${var.runner_apt_packages} dotnet-sdk-${var.dotnet_channel}",
       "${var.install_powershell ? "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y powershell" : "true"}",
-      "dotnet --version && cmake --version | head -1",
+      # Node.js current LTS from NodeSource (Ubuntu's apt nodejs lags).
+      "${var.install_nodejs ? "curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs" : "true"}",
+      # .NET workloads (e.g. android, wasm-tools). Native AOT needs no workload (uses clang/zlib above).
+      "${var.dotnet_workloads != "" ? "sudo dotnet workload install ${var.dotnet_workloads}" : "true"}",
+      "dotnet --version && cmake --version | head -1 && ${var.install_nodejs ? "node --version" : "true"}",
     ]
   }
 

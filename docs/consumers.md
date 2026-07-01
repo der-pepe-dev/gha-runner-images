@@ -36,6 +36,10 @@ projects; they record their own need locally and a maintainer reflects it here.
 
 Defined by the Packer + Ansible automation in this repo:
 - Git, PowerShell 7, .NET 10 SDK (all runners)
+- **Linux runner** also bakes (packer/linux, `runner_apt_packages` + vars): build-essential,
+  clang + zlib1g-dev (Native AOT), cmake, ninja, mingw-w64, binutils, gdb, sqlite3, ffmpeg,
+  zip/unzip, python3, Node.js LTS, and the `android` .NET workload. Android SDK/JDK are NOT
+  baked — Android jobs provide those (setup-java / android-actions).
 - Visual Studio Build Tools / MSBuild (the `vs-buildtools` Windows runner only)
 
 Anything a project lists above that is **not** in the base image needs a role/playbook
