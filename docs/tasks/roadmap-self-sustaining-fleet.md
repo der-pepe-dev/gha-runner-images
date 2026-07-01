@@ -25,9 +25,9 @@ lifecycle; 1 HA builder owns image regeneration (single cluster-wide template).
       start the VM.
 - [x] Proven: clean snapshot -> register --ephemeral -> job -> deregister -> shutdown -> ready to re-cycle (via orchestrate-once skill).
 
-## Phase 3 — Provision the 3 tiny orchestrators
+## Phase 3 — Provision the tiny orchestrators (first node LIVE 2026-07-01)
 
-- [ ] Provisioning script/playbook for each per-node orchestrator LXC: config
+- [x] install-orchestrator.sh provisions the LXC (deps, scripts, config, secrets, units). gha-orch01 live on pve1, self-cycling slot 311 on the timer. Replicate to pve2/3.: config
       (`node.local.env`), secrets EnvironmentFile (Proxmox + GitHub tokens, least
       privilege), and the reconcile service+timer. Stays tiny (bash + curl + jq).
 

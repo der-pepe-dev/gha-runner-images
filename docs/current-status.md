@@ -24,6 +24,15 @@ orchestrator scripts are scaffolds with placeholder Proxmox/injection logic.
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-01: **Phase 3 proven — autonomous orchestrator LXC.** Deployed gha-orch01
+  (unprivileged Ubuntu 24.04 LXC on pve1, vmid 290) via orchestrator/install-orchestrator.sh:
+  installs curl+jq, the orchestrator + eval-age scripts, config
+  (/etc/gha-local-orchestrator/node.local.env), a 0600 secrets EnvironmentFile, and the
+  systemd service+timer. On its ~2-min timer it reconciled slot 311 with NO laptop:
+  rollback clean → inject token → waiter registered gha-linux-eph01 --ephemeral → online +
+  running a job. Also baked runner 2.335.1 (2.329.0 was deprecated) + --disableupdate.
+  The self-sustaining ephemeral fleet is live. Remaining: replicate to pve2/3, Windows
+  ephemeral bake, Phase 4 HA builder.
 - 2026-07-01: **Phase 2 ephemeral loop proven end-to-end.** orchestrate-once against a
   1-slot node.local.env cycled gha-linux-eph01 (vmid 311, cloned from baked template 108):
   rollback to `clean` snapshot → start → guest agent → mint org token → inject
