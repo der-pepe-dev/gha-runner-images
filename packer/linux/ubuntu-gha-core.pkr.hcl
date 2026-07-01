@@ -47,6 +47,22 @@ variable "runner_version" {
   description = "Pinned GitHub Actions runner version to bake into the image (unregistered)."
 }
 
+# CI toolchain baked into the image (ephemeral runners can't install per-job). Derived
+# from docs/consumers.md; extend here + record the consumer row in the same change.
+variable "runner_apt_packages" {
+  default     = "build-essential cmake ninja-build mingw-w64 binutils gdb git curl wget unzip zip jq ca-certificates pkg-config sqlite3 ffmpeg python3 python3-pip python3-venv"
+  description = "Space-separated apt packages installed into the runner image."
+}
+variable "dotnet_channel" {
+  default     = "10.0"
+  description = ".NET SDK channel to install (matches the dotnet10 runner label)."
+}
+variable "install_powershell" {
+  type        = bool
+  default     = true
+  description = "Install PowerShell 7 (consumers.md lists it for all runners)."
+}
+
 source "proxmox-iso" "ubuntu_gha_core" {
   proxmox_url              = var.proxmox_url
   username                 = var.proxmox_username
@@ -126,6 +142,19 @@ build {
         "sudo DEBIAN_FRONTEND=noninteractive apt-get -y dist-upgrade",
       ]
     }
+  }
+
+  # Bake the CI toolchain (ephemeral runners can't install per-job): apt packages +
+  # .NET SDK + PowerShell from the Microsoft feed.
+  provisioner "shell" {
+    inline = [
+      "curl -fsSL https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -o /tmp/ms-prod.deb",
+      "sudo dpkg -i /tmp/ms-prod.deb && rm -f /tmp/ms-prod.deb",
+      "sudo apt-get update",
+      "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ${var.runner_apt_packages} dotnet-sdk-${var.dotnet_channel}",
+      "${var.install_powershell ? "sudo DEBIAN_FRONTEND=noninteractive apt-get install -y powershell" : "true"}",
+      "dotnet --version && cmake --version | head -1",
+    ]
   }
 
   # Bake the GitHub Actions runner (UNREGISTERED) + the ephemeral waiter, so a cloned
