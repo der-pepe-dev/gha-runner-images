@@ -36,7 +36,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-sudo -u "$RUNNER_USER" ./config.sh   --unattended   --ephemeral   --url "$RUNNER_URL"   --token "$RUNNER_TOKEN"   --name "$RUNNER_NAME"   --labels "$RUNNER_LABELS"   --work "$RUNNER_WORK_DIR"   --replace
+# --disableupdate: a baked runner is often older than the server version, and the
+# auto-update restart deletes the one-shot --ephemeral registration mid-update
+# ("Failed to create a session ... registration has been deleted"). Disable it so the
+# ephemeral runner stays registered; keep the baked runner_version reasonably current.
+sudo -u "$RUNNER_USER" ./config.sh --unattended --ephemeral --disableupdate --url "$RUNNER_URL" --token "$RUNNER_TOKEN" --name "$RUNNER_NAME" --labels "$RUNNER_LABELS" --work "$RUNNER_WORK_DIR" --replace
 
 sudo -u "$RUNNER_USER" ./run.sh
 

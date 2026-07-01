@@ -30,9 +30,12 @@ if (-not (Test-Path '.\config.cmd')) {
 }
 
 try {
+    # --disableupdate: the auto-update restart deletes the one-shot --ephemeral
+    # registration mid-update; disable it so the ephemeral runner stays registered.
     .\config.cmd `
         --unattended `
         --ephemeral `
+        --disableupdate `
         --url "$env:RUNNER_URL" `
         --token "$env:RUNNER_TOKEN" `
         --name "$env:RUNNER_NAME" `
