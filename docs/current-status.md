@@ -24,6 +24,14 @@ orchestrator scripts are scaffolds with placeholder Proxmox/injection logic.
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-02: **Refactored to JIT runners.** Orchestrator now calls generate-jitconfig
+  (org/repo) and injects RUNNER_JITCONFIG; bootstraps drop config.sh and run
+  `run.sh --jitconfig <blob>` (one job → shutdown). No registration token or
+  .runner/.credentials on disk (env file deleted after read), inherently single-use,
+  and it sidesteps the config.sh update/deprecation dance. Rebuilt the Linux template
+  with the JIT bootstrap, redeployed the script to gha-orch01, verified end-to-end via
+  the LXC timer: reconcile → JIT injected → runner ONLINE idle (waiting for jobs). PAT
+  still stays on the orchestrator; the runner only sees the one-shot encoded config.
 - 2026-07-01: **Phase 3 proven — autonomous orchestrator LXC.** Deployed gha-orch01
   (unprivileged Ubuntu 24.04 LXC on pve1, vmid 290) via orchestrator/install-orchestrator.sh:
   installs curl+jq, the orchestrator + eval-age scripts, config
