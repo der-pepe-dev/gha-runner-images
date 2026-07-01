@@ -24,6 +24,15 @@ orchestrator scripts are scaffolds with placeholder Proxmox/injection logic.
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-01: **Phase 2 ephemeral loop proven end-to-end.** orchestrate-once against a
+  1-slot node.local.env cycled gha-linux-eph01 (vmid 311, cloned from baked template 108):
+  rollback to `clean` snapshot → start → guest agent → mint org token → inject
+  /etc/gha-runner/env via agent file-write → baked gha-runner-waiter.service ran
+  linux-runner-once.sh → runner registered `--ephemeral` and came ONLINE + picked up a
+  job. Key fix found: baked runner auto-update deletes the one-shot ephemeral registration
+  mid-update → added `--disableupdate` to both bootstrap scripts. Also: agent
+  network-get-interfaces is a GET not POST (pve-status agent() to fix). Control-plane
+  skills (runner-slot/teardown/template-build/orchestrate-once) + shellcheck hook added.
 - 2026-06-27: **First runner registered (Phase 1 done).** Full pipeline proven:
   Linux template (107) → full clone → Ansible `linux-register-runner.yml` (github_runner
   role, org scope) → gha-linux01 registered to der-pepe-dev as a systemd service runner.
