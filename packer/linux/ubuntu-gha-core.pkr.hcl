@@ -140,7 +140,7 @@ build {
   }
   provisioner "shell" {
     inline = [
-      "sudo useradd -m -s /bin/bash gha-runner || true",
+      "id gha-runner >/dev/null 2>&1 || sudo useradd -m -s /bin/bash gha-runner",
       "sudo mkdir -p /opt/actions-runner /opt/actions-work /opt/gha-runner /etc/gha-runner",
       "curl -fsSL -o /tmp/runner.tar.gz https://github.com/actions/runner/releases/download/v${var.runner_version}/actions-runner-linux-x64-${var.runner_version}.tar.gz",
       "sudo tar -xzf /tmp/runner.tar.gz -C /opt/actions-runner",

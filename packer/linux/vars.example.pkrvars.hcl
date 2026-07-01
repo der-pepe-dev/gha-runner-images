@@ -12,6 +12,7 @@ bridge           = "vmbr0"
 vm_name          = "tmpl-ubuntu-gha-core"
 
 # Build user. ssh_password MUST match the hashed password in cloud-init/user-data
-# (placeholder "ChangeMe_GHA_2026"). Replace both for production.
+# (placeholder "ChangeMe_GHA_2026"). Replace both for production. Never commit a real
+# password: copy this to a gitignored *.pkrvars.hcl (or pass -var / PKR_VAR_ssh_password).
 ssh_username = "ansible"
 ssh_password = "ChangeMe_GHA_2026"

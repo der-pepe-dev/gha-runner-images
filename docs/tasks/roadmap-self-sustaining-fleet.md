@@ -14,8 +14,8 @@ lifecycle; 1 HA builder owns image regeneration (single cluster-wide template).
 ## Phase 1 — Prove one runner (DONE)
 
 - [x] Clone one VM from a template, Ansible-register it (org-level), confirm it appears
-      in der-pepe-dev runners and runs a job. This is the same registration the
-      orchestrator will call — proving it de-risks the orchestrator.
+      in the **der-pepe-dev** GitHub org's runners and runs a job. This is the same
+      registration the orchestrator will call — proving it de-risks the orchestrator.
 
 ## Phase 2 — Finish the runner-lifecycle loop (orchestrator job #1)
 
@@ -37,8 +37,11 @@ lifecycle; 1 HA builder owns image regeneration (single cluster-wide template).
       build-priv token, build password) + CephFS ISO access. Rootfs on Ceph.
 - [ ] Put the builder in a Proxmox **HA group** so a node failure relocates it.
 - [ ] systemd timer on the builder: `git pull` + `packer build` of the single
-      cluster-wide template per OS, on a fixed schedule (~60-90 days). Eval-age checker as
-      a safety net.
+      cluster-wide template per OS, on a fixed schedule (~60-90 days) — this is the
+      **primary** regeneration trigger (ADR-0001). The existing eval-age checker
+      (`WIN_TEMPLATE_EVAL_MAX_DAYS`, default 100, alert-only) stays as an independent
+      **safety net** that catches a stalled schedule before the 180-day eval expires; the
+      two are complementary, not the same mechanism.
 - [ ] Template handover (see ADR): build to a versioned VMID, flip a `current-template`
       marker on success, orchestrators re-seed slots rolling/idle-only, retain N-1 then
       delete. Confirm `full_clone: true` everywhere so slots are template-independent.
