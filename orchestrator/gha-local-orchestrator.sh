@@ -41,20 +41,27 @@ source "$CONFIG_FILE"
 
 PVE_AUTH="Authorization: PVEAPIToken=${PROXMOX_TOKEN_ID}=${PROXMOX_TOKEN}"
 
-# --- GitHub: request a fresh short-lived runner registration token ------------
-get_github_runner_token() {
-  local owner="$1" repo="$2" scope="$3" uri
+# --- GitHub: generate a JIT (just-in-time) runner config ----------------------
+# Returns the base64 encoded_jit_config. The runner runs `run.sh --jitconfig <blob>`
+# directly — no config.sh, no registration token on disk, inherently single-use +
+# ephemeral. The PAT (GITHUB_TOKEN) stays here; the runner only ever sees the one-shot
+# encoded config.
+generate_jitconfig() {
+  local owner="$1" repo="$2" scope="$3" name="$4" labels_csv="$5" uri labels_json body
   if [ "$scope" = "org" ]; then
-    uri="https://api.github.com/orgs/${owner}/actions/runners/registration-token"
+    uri="https://api.github.com/orgs/${owner}/actions/runners/generate-jitconfig"
   else
-    uri="https://api.github.com/repos/${owner}/${repo}/actions/runners/registration-token"
+    uri="https://api.github.com/repos/${owner}/${repo}/actions/runners/generate-jitconfig"
   fi
-  # --fail so HTTP errors are caught; -s quiet; token parsed with jq.
+  labels_json="$(printf '%s' "$labels_csv" | jq -R 'split(",")')"
+  body="$(jq -n --arg name "$name" --argjson labels "$labels_json" \
+    '{name:$name, runner_group_id:1, labels:$labels, work_folder:"_work"}')"
   curl -fsS -X POST "$uri" \
     -H "Authorization: Bearer ${GITHUB_TOKEN}" \
     -H "Accept: application/vnd.github+json" \
     -H "X-GitHub-Api-Version: 2022-11-28" \
-  | jq -r '.token'
+    -d "$body" \
+  | jq -r '.encoded_jit_config // empty'
 }
 
 # --- Proxmox: current status of a VM -----------------------------------------
@@ -111,13 +118,13 @@ pve_agent_write_file() {
     "${PROXMOX_URL}/nodes/${PROXMOX_NODE}/qemu/${vmid}/agent/file-write" >/dev/null
 }
 
-# --- Reset one runner slot (snapshot-rollback + guest-agent token injection) --
-# Rolls the slot VM back to its clean (unregistered) snapshot, starts it, mints a
-# fresh registration token, and writes the runner env into the guest via the agent.
-# A waiter baked into the image reads that env and runs the one-shot ephemeral runner.
+# --- Reset one runner slot (snapshot-rollback + JIT config injection) ----------
+# Rolls the slot VM back to its clean snapshot, starts it, generates a JIT runner
+# config, and writes it into the guest via the agent. A waiter baked into the image
+# runs `run.sh --jitconfig <blob>` — one job, then shuts down. The PAT stays here.
 reset_runner_slot() {
   local idx="$1"
-  local name vmid snapshot os labels upid runner_token runner_url env_path env_content
+  local name vmid snapshot os labels upid jitconfig env_path env_content
   eval "name=\${SLOT_${idx}_NAME}"
   eval "vmid=\${SLOT_${idx}_VMID}"
   eval "snapshot=\${SLOT_${idx}_CLEAN_SNAPSHOT:-clean}"
@@ -137,39 +144,25 @@ reset_runner_slot() {
   # 3. Wait for the guest agent.
   wait_for_agent "$vmid" || { echo "ERR ${name}: agent not up" >&2; return 1; }
 
-  # 4. Mint a fresh registration token (orchestrator holds the PAT, not the runner).
-  runner_token="$(get_github_runner_token "$GITHUB_OWNER" "$GITHUB_REPO" "$REGISTRATION_SCOPE")"
-  if [ -z "$runner_token" ] || [ "$runner_token" = "null" ]; then
-    echo "ERR ${name}: token request failed" >&2; return 1
-  fi
-  if [ "$REGISTRATION_SCOPE" = "org" ]; then
-    runner_url="https://github.com/${GITHUB_OWNER}"
-  else
-    runner_url="https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}"
+  # 4. Generate a JIT config (orchestrator holds the PAT; the runner never sees it).
+  jitconfig="$(generate_jitconfig "$GITHUB_OWNER" "$GITHUB_REPO" "$REGISTRATION_SCOPE" "$name" "$labels")"
+  if [ -z "$jitconfig" ] || [ "$jitconfig" = "null" ]; then
+    echo "ERR ${name}: jitconfig generation failed" >&2; return 1
   fi
 
-  # 5. Inject the runner env via the guest agent (OS-specific path + format).
+  # 5. Inject the JIT config via the guest agent (OS-specific path + format).
   if [ "$os" = "windows" ]; then
     env_path='C:\gha-runner\runner.env.ps1'
-    env_content="\$env:RUNNER_URL='${runner_url}'
-\$env:RUNNER_TOKEN='${runner_token}'
-\$env:RUNNER_NAME='${name}'
-\$env:RUNNER_LABELS='${labels}'
-\$env:RUNNER_EPHEMERAL='true'"
+    env_content="\$env:RUNNER_JITCONFIG='${jitconfig}'"
   else
     env_path='/etc/gha-runner/env'
-    env_content="RUNNER_URL=${runner_url}
-RUNNER_TOKEN=${runner_token}
-RUNNER_NAME=${name}
-RUNNER_LABELS=${labels}
-RUNNER_EPHEMERAL=true"
+    env_content="RUNNER_JITCONFIG=${jitconfig}"
   fi
   pve_agent_write_file "$vmid" "$env_path" "$env_content" \
-    || { echo "ERR ${name}: env injection failed" >&2; return 1; }
+    || { echo "ERR ${name}: jitconfig injection failed" >&2; return 1; }
 
-  echo "${name}: clean, started, env injected — waiter will register --ephemeral."
-  # Don't leave the token in the environment/logs.
-  unset runner_token env_content
+  echo "${name}: clean, started, JIT config injected — waiter will run one job."
+  unset jitconfig env_content
 }
 
 # --- Reconcile loop over this node's slots ------------------------------------
