@@ -24,6 +24,13 @@ orchestrator scripts are scaffolds with placeholder Proxmox/injection logic.
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-02: **3-node fleet live.** Scaled the JIT orchestrator to all nodes: gha-orch02
+  (pve2, LXC 291) + gha-orch03 (pve3, LXC 292), each provisioned via
+  install-orchestrator.sh, pointing at its OWN node API (autonomous, no cross-node dep),
+  managing a Linux slot cloned from the Ceph template 107 (312 on pve2, 313 on pve3).
+  All three per-node runners (gha-linux-eph01/02/03) register via JIT and sit ONLINE idle,
+  each cycled by its node's systemd timer. Fully self-sustaining, no laptop. Remaining:
+  Windows ephemeral bake, Phase 4 HA builder.
 - 2026-07-02: **Refactored to JIT runners.** Orchestrator now calls generate-jitconfig
   (org/repo) and injects RUNNER_JITCONFIG; bootstraps drop config.sh and run
   `run.sh --jitconfig <blob>` (one job → shutdown). No registration token or
