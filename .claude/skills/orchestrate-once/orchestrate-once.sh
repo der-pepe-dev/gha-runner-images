@@ -11,8 +11,12 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+# set -a so the sourced creds are EXPORTED — the orchestrator is exec'd as a fresh
+# process and only inherits exported vars.
+set -a
 # shellcheck source=/dev/null
 [ -f "$REPO/.claude/skills/pve-status/pve.local.env" ] && source "$REPO/.claude/skills/pve-status/pve.local.env"
+set +a
 : "${PROXMOX_TOKEN_ID:?}"; : "${PROXMOX_TOKEN:?}"; : "${GITHUB_TOKEN:?Set GITHUB_TOKEN (org PAT)}"
 
 cfg="${1:?path to a node.local.env config}"
