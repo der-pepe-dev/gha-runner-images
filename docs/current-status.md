@@ -27,6 +27,13 @@ the build-up. The `dotnet_sdk` / `github_runner` roles and the persistent-runner
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-02: **CI toolchain baked into the Linux runner + fleet re-seeded.** Template 108
+  bakes .NET 10 SDK (incl. Native AOT via clang+zlib), cmake, ninja, mingw-w64, binutils,
+  sqlite3, ffmpeg, zip, python3, PowerShell 7, and Node.js LTS (extensible via
+  runner_apt_packages / dotnet_channel / install_nodejs / dotnet_workloads). Android
+  dropped from the core image (too heavy → future beefier image). Re-seeded slots
+  311/312/313 from 108; verified on a live slot (dotnet 10.0.109, cmake 3.28.3, node
+  v24.18, mingw 13, clang 18.1.3). Runners cycle jobs with the toolchain ready.
 - 2026-07-02: **3-node fleet live.** Scaled the JIT orchestrator to all nodes: gha-orch02
   (pve2, LXC 291) + gha-orch03 (pve3, LXC 292), each provisioned via
   install-orchestrator.sh, pointing at its OWN node API (autonomous, no cross-node dep),
