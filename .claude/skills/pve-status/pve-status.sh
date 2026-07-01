@@ -15,6 +15,12 @@
 #   pve-status.sh agent <vmid>    # agent ping + IPv4 addresses
 set -euo pipefail
 
+# Optional local, gitignored defaults (PROXMOX_URL / PROXMOX_TOKEN_ID / PROXMOX_TOKEN).
+# Real env vars still override. Keeps the secret out of the committed script + transcript.
+_SD="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+[ -f "${_SD}/pve.local.env" ] && source "${_SD}/pve.local.env"
+
 : "${PROXMOX_URL:?Set PROXMOX_URL}"
 : "${PROXMOX_TOKEN_ID:?Set PROXMOX_TOKEN_ID}"
 : "${PROXMOX_TOKEN:?Set PROXMOX_TOKEN}"

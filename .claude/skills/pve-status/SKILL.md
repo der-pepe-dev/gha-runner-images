@@ -8,15 +8,15 @@ description: Read-only Proxmox VE status for the GHA runner fleet — cluster ov
 Quick read-only checks against the Proxmox API, using the same env token as the
 orchestrator and `discover-proxmox.sh`. No changes are made to any VM.
 
-## Prereqs (env)
+## Prereqs (env or local file)
 
-```
-PROXMOX_URL       https://<node>:8006/api2/json
-PROXMOX_TOKEN_ID  packer@pve!packer
-PROXMOX_TOKEN     <secret>
-```
-If unset, ask the user to export them (same values used for discovery/builds). Self-signed
-certs are accepted (`-k`).
+Needs `PROXMOX_URL`, `PROXMOX_TOKEN_ID`, `PROXMOX_TOKEN`. The script sources a gitignored
+`.claude/skills/pve-status/pve.local.env` if present (real env vars override), so the
+non-secret URL + token-id can live there and only the token secret needs adding. Any
+node's `:8006` works — the API is cluster-wide. Self-signed certs accepted (`-k`).
+
+If `PROXMOX_TOKEN` is empty, ask the user to paste it into `pve.local.env` (gitignored) or
+export it — do not print the token.
 
 ## Commands
 
