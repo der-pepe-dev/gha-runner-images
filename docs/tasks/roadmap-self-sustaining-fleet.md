@@ -17,13 +17,13 @@ lifecycle; 1 HA builder owns image regeneration (single cluster-wide template).
       in the **der-pepe-dev** GitHub org's runners and runs a job. This is the same
       registration the orchestrator will call — proving it de-risks the orchestrator.
 
-## Phase 2 — Finish the runner-lifecycle loop (orchestrator job #1)
+## Phase 2 — Runner-lifecycle loop (DONE — proven end-to-end 2026-07-01)
 
-- [ ] Implement `reset_runner_slot` in `orchestrator/gha-local-orchestrator.sh`:
+- [x] Implement `reset_runner_slot` in `orchestrator/gha-local-orchestrator.sh`:
       pick reset strategy (snapshot-rollback vs destroy+reclone), inject fresh org
       registration token + runner name/labels/ephemeral via cloud-init/guest-agent,
       start the VM.
-- [ ] Confirm the per-node reconcile timer brings a used ephemeral runner back to clean.
+- [x] Proven: clean snapshot -> register --ephemeral -> job -> deregister -> shutdown -> ready to re-cycle (via orchestrate-once skill).
 
 ## Phase 3 — Provision the 3 tiny orchestrators
 
