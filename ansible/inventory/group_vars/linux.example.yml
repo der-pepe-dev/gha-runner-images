@@ -1,5 +1,5 @@
 ---
 dotnet_channel: "10.0"
-actions_runner_version: "2.329.0"
+actions_runner_version: "2.335.1"
 actions_runner_dir: "/opt/actions-runner"
 actions_work_dir: "/opt/actions-work"

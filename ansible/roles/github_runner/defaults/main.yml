@@ -1,6 +1,6 @@
 ---
 # Pinned runner version (override in group_vars). Do not silently track latest.
-actions_runner_version: "2.329.0"
+actions_runner_version: "2.335.1"
 
 # Install locations. group_vars set the platform-correct values
 # (linux: /opt/..., windows: C:\...); these are fallbacks.

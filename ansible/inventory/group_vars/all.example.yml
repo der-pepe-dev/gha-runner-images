@@ -2,7 +2,7 @@
 # Shared example defaults. Copy to all.yml and customize locally.
 
 # Pin runner version intentionally instead of always pulling latest.
-actions_runner_version: "2.329.0"
+actions_runner_version: "2.335.1"
 
 # Default labels are intentionally project-neutral so the same organization-level
 # runners can serve multiple repositories.
