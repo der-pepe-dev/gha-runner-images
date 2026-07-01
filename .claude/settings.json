@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // .tool_response.filePath // empty'); [ -n \"$f\" ] && [ -f \"$f\" ] || exit 0; case \"$f\" in *.sh) ;; *) head -1 \"$f\" 2>/dev/null | grep -qE '^#!.*\\b(bash|sh)\\b' || exit 0 ;; esac; command -v shellcheck >/dev/null || exit 0; out=$(shellcheck \"$f\" 2>&1) && exit 0; jq -n --arg f \"$f\" --arg o \"$out\" '{hookSpecificOutput:{hookEventName:\"PostToolUse\",additionalContext:(\"shellcheck reported issues in \\($f):\\n\\($o)\")}}'",
+            "timeout": 30,
+            "statusMessage": "shellcheck"
+          }
+        ]
+      }
+    ]
+  }
+}
