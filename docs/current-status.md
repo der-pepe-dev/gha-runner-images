@@ -6,19 +6,22 @@ Prefer appending dated notes over rewriting._
 
 ## Status
 
-Scaffold in active development. The two-stage Packer→Ansible structure, secret
-hygiene, register-runner playbooks, and a new **local-orchestrator fleet model**
-(per-node orchestrator managing ephemeral runners; optional NAS capacity pool) are in
-place. Fleet cloning (`scripts/clone-runner-fleet.ps1` + `fleet.example.yml`) and
-orchestrator scaffolds (`orchestrator/`) are present. Intentionally incomplete:
-Ansible roles are placeholder stubs, the Linux Packer build is a skeleton, and the
-orchestrator scripts are scaffolds with placeholder Proxmox/injection logic.
+**Live: a 3-node self-sustaining JIT ephemeral GitHub Actions runner fleet on
+Proxmox + Ceph.** Windows and Linux golden templates build reproducibly with Packer.
+Per-node orchestrator LXCs (gha-orch01/02/03) run on systemd timers and cycle a Linux
+JIT runner each (gha-linux-eph01/02/03): rollback clean snapshot → generate JIT config →
+inject via guest agent → `run.sh --jitconfig` → one job → shutdown → repeat. No laptop in
+the runtime path. See ADR-0001 for the target architecture and the dated notes below for
+the build-up. The `dotnet_sdk` / `github_runner` roles and the persistent-runner path
+(Phase 1) also work.
 
 ## Known limitations
 
-- Ansible roles (`dotnet_sdk`, `github_runner`, `windows_buildtools`) are README stubs.
-- Linux Packer build needs autoinstall boot command + cloud-init media to be automated.
-- No lint/validate CI on this repo yet.
+- **Windows ephemeral not baked yet** — the Windows template (106) exists but has no JIT
+  waiter; only Linux ephemeral runners are live.
+- **No HA builder yet** (Phase 4) — templates are still rebuilt from WSL via
+  `/template-build`, not by an on-cluster HA builder LXC on a schedule.
+- No lint/validate CI on the repo (shellcheck runs locally via a hook).
 
 ## Recent notes
 
