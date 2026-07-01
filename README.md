@@ -1,151 +1,107 @@
 # GitHub Actions Self-Hosted Runner Images
 
-Packer and Ansible automation for building Proxmox-hosted GitHub Actions self-hosted runner images.
+Infrastructure-as-Code (Packer + Ansible + PowerShell + a bash orchestrator) for a
+**self-sustaining, ephemeral GitHub Actions runner fleet on Proxmox VE + Ceph**.
 
-This repository is intended for reproducible home-lab/private infrastructure runners, especially lightweight Windows and Linux VMs hosted on Proxmox VE.
+Golden VM templates are built once with Packer; a tiny per-node orchestrator LXC then
+cycles clean **JIT (just-in-time) ephemeral** runners on a timer — clean VM per job, no
+management host in the runtime path.
 
-## Goals
+## Status
 
-- Build reproducible Windows and Linux runner templates.
-- Keep GitHub runner registration out of golden images.
-- Support lightweight .NET runners and optional heavier Windows Build Tools runners.
-- Run one Linux runner and one Windows runner per Proxmox node.
-- Use one local orchestrator per Proxmox node to recreate/reset that node's runners.
-- Optionally add a separate NAS/beefy runner group for high-capacity jobs.
-- Avoid committing secrets, runner registration tokens, Proxmox tokens, passwords, or real inventory.
+**Live: a 3-node self-sustaining Linux JIT fleet.** Windows + Linux golden templates
+build reproducibly. `gha-orch01/02/03` (one LXC per node) each cycle a Linux JIT runner
+(`gha-linux-eph01/02/03`) on a ~2-min systemd timer. See
+[`docs/current-status.md`](docs/current-status.md) for the running state and
+[`docs/decisions/0001-self-sustaining-fleet.md`](docs/decisions/0001-self-sustaining-fleet.md)
+for the target architecture. Remaining: Windows ephemeral bake, the HA builder (Phase 4).
 
-## Planned images
+## Architecture
+
+**Two stages, plus autonomous orchestration:**
+
+1. **Packer builds golden templates** (from ISO) — base OS, guest agent, the GitHub
+   runner package + a boot **waiter** baked in (unregistered), and the CI toolchain. On
+   Ceph a template is cluster-wide (build once, clone anywhere).
+2. **Per-node orchestrator LXC** (bash + curl + jq, systemd timer) reconciles that node's
+   runner slots via **snapshot-rollback**: roll the slot VM back to its `clean` snapshot →
+   generate a **JIT config** (holding the PAT locally) → inject it via the guest agent →
+   the waiter runs `run.sh --jitconfig` → one job → shutdown → repeat.
+
+Why JIT: no registration token or credentials land on the runner (only a one-shot encoded
+config, deleted after read), it's inherently single-use, and it avoids the `config.sh`
+update/deprecation issues. The PAT never leaves the orchestrator.
+
+Ansible (`ansible/`) provides an alternative **persistent** service-runner path
+(`*-register-runner.yml`) and the `dotnet_sdk` / `github_runner` roles; the ephemeral
+fleet above is the primary model.
+
+## Images
 
 | Image | Purpose |
 |---|---|
-| `win-gha-core` | Lightweight Windows Server Core runner with Git, PowerShell 7, and .NET 10 SDK |
+| `ubuntu-gha-core` | Linux runner: .NET 10 SDK, PowerShell 7, Node.js LTS, build-essential + clang/zlib (Native AOT), cmake, ninja, mingw-w64, binutils, sqlite3, ffmpeg, python3, git — plus the baked runner + waiter |
+| `win-gha-core` | Windows Server Core runner: Git, PowerShell 7, .NET 10 SDK |
 | `win-gha-buildtools` | Optional heavier Windows runner with Visual Studio Build Tools/MSBuild |
-| `ubuntu-gha-core` | Lightweight Linux runner for general CI and .NET builds |
-| `nas-beefy` | Optional high-capacity NAS/server runner group for heavy jobs |
 
-## Target fleet
+The Linux toolchain is an extensible `runner_apt_packages` var + `dotnet_channel` /
+`install_nodejs` / `dotnet_workloads` toggles; heavy add-ons (e.g. the Android SDK) belong
+in a future beefier image, not the lean core. Requirements per consuming project are
+tracked in [`docs/consumers.md`](docs/consumers.md).
 
-The default design is intentionally simple and non-HA for runners: one lightweight Linux runner and one lightweight Windows runner per Proxmox node.
+## Fleet
 
-| Proxmox node | Local orchestrator | Linux runner | Windows runner |
-|---|---|---|---|
-| `pve01` | `gha-orch01` | `gha-linux01` | `gha-win01` |
-| `pve02` | `gha-orch02` | `gha-linux02` | `gha-win02` |
-| `pve03` | `gha-orch03` | `gha-linux03` | `gha-win03` |
+One orchestrator LXC + a runner slot per node, **non-HA and node-pinned** (a down node's
+runner is just down). Each orchestrator points at its own node's API — no cross-node
+dependency.
 
-There is no shared-runner HA layer. If a Proxmox node is down, its local orchestrator and its two runners are offline. The remaining nodes continue serving jobs whose labels match available online runners. See `docs/runner-fleet.md`, `docs/nas-runner-group.md`, and `orchestrator/README.md`.
+| Node | Orchestrator LXC | Linux runner slot |
+|---|---|---|
+| pve1 | gha-orch01 | gha-linux-eph01 |
+| pve2 | gha-orch02 | gha-linux-eph02 |
+| pve3 | gha-orch03 | gha-linux-eph03 |
 
+## Deploy (from a management host)
 
-## Optional NAS / beefy runner group
-
-A NAS or larger server can be added as a separate high-capacity runner group. Keep it opt-in with labels such as `nas`, `beefy`, or `vs-buildtools` so normal jobs continue using the lightweight Proxmox fleet.
-
-Example heavy Linux job:
-
-```yaml
-runs-on: [self-hosted, linux, x64, dotnet10, beefy]
-```
-
-Example heavy Windows Build Tools job:
-
-```yaml
-runs-on: [self-hosted, windows, x64, dotnet10, vs-buildtools]
-```
-
-## Two-stage model
-
-### 1. Packer builds golden templates
-
-Packer creates clean VM templates from installation media:
-
-- Windows Server Core templates from ISO + `autounattend.xml`.
-- Linux templates from ISO/cloud-init.
-- Base OS configuration, WinRM/SSH readiness, guest agent installation, cleanup.
-
-### 2. Ansible configures and registers clones
-
-Ansible installs CI tooling and registers actual cloned VMs as GitHub Actions runners:
-
-- Git
-- PowerShell 7
-- .NET 10 SDK
-- Optional Visual Studio Build Tools/MSBuild
-- GitHub Actions runner package
-- Runner registration/bootstrap
-
-Runner registration should happen only after cloning/resetting a VM from the clean template or snapshot. GitHub runner registration tokens are short-lived and should never be baked into images.
-
-## Example runner labels
-
-Use explicit self-hosted labels in workflows instead of `windows-latest` or `ubuntu-latest`. The default labels are organization/project neutral so the same runners can be reused by multiple repositories.
-
-Windows runner example:
-
-```yaml
-runs-on: [self-hosted, windows, x64, dotnet10]
-```
-
-Linux runner example:
-
-```yaml
-runs-on: [self-hosted, linux, x64, dotnet10]
-```
-
-Optional node-specific routing:
-
-```yaml
-runs-on: [self-hosted, linux, x64, dotnet10, pve01]
-```
-
-Optional heavier Windows Build Tools runner:
-
-```yaml
-runs-on: [self-hosted, windows, x64, dotnet10, vs-buildtools]
-```
-
-## Quick start
-
-Install Packer and Ansible on your management machine.
-
-Install Ansible collections:
+Proxmox creds via env (see the `pve-status` skill's local env). Then:
 
 ```bash
-cd ansible
-ansible-galaxy collection install -r requirements.yml
+# 1. discover cluster storage/bridge/ISOs -> fills packer/*/local.pkrvars.hcl
+scripts/discover-proxmox.sh
+
+# 2. build a golden template (background; needs xorriso + a build-privileged token)
+bash .claude/skills/template-build/template-build.sh linux
+
+# 3. create a runner slot from the template (clone + 'clean' snapshot)
+bash .claude/skills/runner-slot/runner-slot.sh create <template_vmid> <slot_vmid> <name>
+
+# 4. provision an orchestrator LXC, then on it:
+sudo orchestrator/install-orchestrator.sh
+#    fill /etc/gha-local-orchestrator/{env, node.local.env} -> the timer self-cycles the slot
 ```
 
-Copy example configuration files and edit locally:
+Prereqs and the full Ceph/token/build runbook are in
+[`docs/deploy.md`](docs/deploy.md) and [`docs/required-tools.md`](docs/required-tools.md).
 
-```bash
-cp ansible/inventory/hosts.example.ini ansible/inventory/hosts.ini
-cp ansible/group_vars/windows.example.yml ansible/group_vars/windows.yml
-cp ansible/group_vars/linux.example.yml ansible/group_vars/linux.yml
-cp ansible/group_vars/vault.example.yml ansible/group_vars/vault.yml
+## Control-plane skills
+
+Drive the fleet from Claude Code: `/pve-status` (read cluster/VM/snapshot/agent),
+`/runner-slot` (create/destroy slots), `/runner-teardown` (deregister + purge),
+`/template-build` (Packer build), `/orchestrate-once` (one reconcile pass).
+
+## Runner labels
+
+Use explicit self-hosted labels (project-neutral, so runners are reusable):
+
+```yaml
+runs-on: [self-hosted, linux, x64, dotnet10]        # Linux
+runs-on: [self-hosted, windows, x64, dotnet10]      # Windows
+runs-on: [self-hosted, linux, x64, dotnet10, pve1]  # pin to a node
 ```
-
-Encrypt real secret values:
-
-```bash
-ansible-vault encrypt ansible/group_vars/vault.yml
-```
-
-Create a local Packer var file from the example:
-
-```bash
-cp packer/windows/vars.example.pkrvars.hcl packer/windows/local.auto.pkrvars.hcl
-```
-
-Do not commit the real var file.
 
 ## Safety
 
-Never commit:
-
-- GitHub PATs
-- GitHub runner registration tokens
-- Proxmox API tokens
-- Windows administrator passwords
-- Ansible vault password files
-- Real inventory files with internal hostnames/IPs if you want to keep them private
-
-Use `.example.*` files for committed examples.
+Never commit: GitHub PATs, runner registration tokens, Proxmox API tokens, Windows
+Administrator passwords, vault password files, or real inventory. Committed config is
+`.example.*` only; real values are gitignored and/or ansible-vault encrypted. Runner
+registration/JIT tokens are short-lived — never baked into images.
