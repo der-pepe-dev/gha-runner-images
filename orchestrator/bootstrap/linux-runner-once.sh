@@ -35,7 +35,7 @@ rm -f "$ENV_FILE" 2>/dev/null || true
 # exits. Step the clock immediately from an HTTPS Date header (fast, no NTP roundtrip),
 # then hand off to NTP for ongoing accuracy. Harmless on a cold boot (already correct).
 http_date="$(curl -sI --max-time 5 https://github.com 2>/dev/null | awk -F': ' 'tolower($1)=="date"{print $2}' | tr -d '\r')"
-[ -n "$http_date" ] && date -s "$http_date" >/dev/null 2>&1 || true
+if [ -n "$http_date" ]; then date -s "$http_date" >/dev/null 2>&1 || true; fi
 timedatectl set-ntp true 2>/dev/null || true
 systemctl restart systemd-timesyncd 2>/dev/null || true
 
