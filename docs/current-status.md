@@ -27,6 +27,14 @@ the build-up. The `dotnet_sdk` / `github_runner` roles and the persistent-runner
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-02: **Faster respawn — 15s timer (#1) + LAN self-trigger (#2).** Timer 1min->15s.
+  Plus a socket-activated reconcile (gha-orch-trigger.socket on :9099) that a finished
+  runner pokes right before shutdown (ORCH_TRIGGER_URL injected into the runner env; both
+  bootstraps curl it) — resets the slot immediately instead of waiting for the timer.
+  LAN-only, idempotent, no public ingress (the LXCs are NAT'd, so a real GitHub webhook
+  would need Cloudflare Tunnel — not worth it here). Proven: manual poke -> reset in ~3s.
+  Also baked pwsh into the Windows template (was missing; needs the Windows rebuild).
+  Fleet 5/5 online. See lessons.md for the resnap-vs-trigger gotcha that hit slot 311.
 - 2026-07-02: **Windows ephemeral on the vmstate fast-path too (~29s).** Converted the
   Windows slots (321 pve1, 323 pve3) to vmstate (RAM) `clean` snapshots and patched their
   baked windows-runner-once.ps1 with the HTTPS-Date clock step (vmstate freezes the Windows

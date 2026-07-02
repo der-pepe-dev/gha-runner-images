@@ -139,3 +139,15 @@ connection (`kex_exchange_identification: Connection reset by peer`).
 systemd oneshot (`Before=ssh.service`, `ConditionPathExistsGlob=!/etc/ssh/ssh_host_*_key`,
 `ExecStart=/usr/bin/ssh-keygen -A`) before removing the keys. Same idea applies to any
 "remove identity then regenerate on boot" generalize step.
+
+### 2026-07-02: Re-snapshotting a slot — pause the timer AND the trigger socket
+
+When creating a vmstate `clean` snapshot, the VM must be in the *clean-waiting* state
+(waiter polling, no env, no runner). If the orchestrator timer OR the LAN trigger socket
+fires a reconcile during the resnap, it injects a JIT env → the waiter runs the full
+runner → the snapshot captures an already-registered runner with a now-stale JIT config.
+On rollback that runner resumes but GitHub rejects the consumed config → the slot never
+comes online. Symptom seen on slot 311. Rule: before any resnap, stop BOTH
+gha-local-orchestrator.timer and gha-orch-trigger.socket on that node. To recover a bad
+snapshot: rollback, kill Runner.Listener, rm .runner/.credentials*/_diag/*/etc/gha-runner/env,
+restart gha-runner-waiter, then re-snapshot.
