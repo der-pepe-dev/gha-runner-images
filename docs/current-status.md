@@ -27,6 +27,14 @@ the build-up. The `dotnet_sdk` / `github_runner` roles and the persistent-runner
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-02: **Windows ephemeral runners work.** Rebuilt the Windows template (107)
+  baking Git + .NET 10 SDK + the runner package (unregistered) + a SYSTEM at-startup
+  Scheduled Task (gha-runner-waiter.ps1) that waits for the orchestrator-injected
+  C:\gha-runner\runner.env.ps1 then runs windows-runner-once.ps1 (run.cmd --jitconfig).
+  Proven end-to-end on pve1 (gha-win-eph01): stopped -> timer reset -> cold boot ~50s ->
+  waiter -> run.cmd --jitconfig -> online + running a job -> cycle. Windows slots on
+  pve1 + pve3 only (pve2 too tight on RAM for an 8 GB Windows VM). Off-state snapshot for
+  now (~50-60s cold); vmstate + the clock-step fix can speed it later.
 - 2026-07-02: **Fast-path recovery via vmstate (RAM) snapshots — ~12-17s.** `clean`
   snapshots now include RAM: rollback restores a live, agent-up, waiter-polling VM in
   seconds, skipping the ~60-90s cold boot. Orchestrator changes: skip start when rollback
