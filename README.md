@@ -55,11 +55,14 @@ One orchestrator LXC + a runner slot per node, **non-HA and node-pinned** (a dow
 runner is just down). Each orchestrator points at its own node's API — no cross-node
 dependency.
 
-| Node | Orchestrator LXC | Linux runner slot |
-|---|---|---|
-| pve1 | gha-orch01 | gha-linux-eph01 |
-| pve2 | gha-orch02 | gha-linux-eph02 |
-| pve3 | gha-orch03 | gha-linux-eph03 |
+| Node | Orchestrator LXC | Linux runner | Windows runner |
+|---|---|---|---|
+| pve1 | gha-orch01 | gha-linux-eph01 | gha-win-eph01 |
+| pve2 | gha-orch02 | gha-linux-eph02 | — (RAM-constrained) |
+| pve3 | gha-orch03 | gha-linux-eph03 | gha-win-eph03 |
+
+Linux runners use vmstate (RAM) snapshots for ~15s recovery; Windows use off-state
+snapshots (~1 min cold). Each node's orchestrator manages its own slots.
 
 ## Deploy (from a management host)
 
