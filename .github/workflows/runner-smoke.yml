@@ -1,0 +1,31 @@
+name: runner-smoke
+
+# Manual smoke test for the self-hosted ephemeral fleet: proves a job lands on a runner,
+# the baked toolchain is present, and the runner respawns after (JIT + self-trigger).
+on:
+  workflow_dispatch:
+
+jobs:
+  linux:
+    runs-on: [self-hosted, linux, x64, dotnet10]
+    steps:
+      - name: toolchain
+        run: |
+          echo "host: $(hostname)  user: $(whoami)"
+          uname -a
+          dotnet --version
+          cmake --version | head -1
+          node --version
+          git --version
+          echo "linux runner OK"
+
+  windows:
+    runs-on: [self-hosted, windows, x64, dotnet10]
+    steps:
+      - name: toolchain
+        shell: powershell
+        run: |
+          Write-Host "host: $env:COMPUTERNAME"
+          dotnet --version
+          git --version
+          Write-Host "windows runner OK"
