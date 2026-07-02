@@ -30,6 +30,17 @@ fi
 # leftover blob can't be read by the job.
 rm -f "$ENV_FILE" 2>/dev/null || true
 
+# A vmstate (RAM) snapshot restore leaves the guest clock frozen at snapshot time (can be
+# far in the past). A stale clock breaks JIT/token auth — GitHub rejects the runner and it
+# exits. Force an immediate NTP resync (timesyncd steps large offsets on restart) before
+# starting the runner. Harmless on a cold boot (clock already correct).
+timedatectl set-ntp true 2>/dev/null || true
+systemctl restart systemd-timesyncd 2>/dev/null || true
+for _ in $(seq 1 20); do
+  [ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null)" = "yes" ] && break
+  sleep 1
+done
+
 sudo -u "$RUNNER_USER" ./run.sh --jitconfig "$RUNNER_JITCONFIG"
 
 shutdown -h now
