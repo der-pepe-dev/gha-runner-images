@@ -137,11 +137,15 @@ reset_runner_slot() {
   upid="$(pve_post "/nodes/${PROXMOX_NODE}/qemu/${vmid}/snapshot/${snapshot}/rollback" | jq -r '.data // empty')"
   wait_for_task "$upid" || { echo "ERR ${name}: rollback failed" >&2; return 1; }
 
-  # 2. Start the VM.
-  upid="$(pve_post "/nodes/${PROXMOX_NODE}/qemu/${vmid}/status/start" | jq -r '.data // empty')"
-  wait_for_task "$upid" || { echo "ERR ${name}: start failed" >&2; return 1; }
+  # 2. Start the VM — unless the rollback already restored a RUNNING VM. A vmstate
+  #    (RAM) snapshot resumes live in ~seconds (agent up, waiter mid-poll), skipping
+  #    the ~60-90s cold boot. An off-state snapshot leaves it stopped, so start then.
+  if [ "$(get_proxmox_vm_state "$vmid" 2>/dev/null)" != "running" ]; then
+    upid="$(pve_post "/nodes/${PROXMOX_NODE}/qemu/${vmid}/status/start" | jq -r '.data // empty')"
+    wait_for_task "$upid" || { echo "ERR ${name}: start failed" >&2; return 1; }
+  fi
 
-  # 3. Wait for the guest agent.
+  # 3. Wait for the guest agent (near-instant after a vmstate restore).
   wait_for_agent "$vmid" || { echo "ERR ${name}: agent not up" >&2; return 1; }
 
   # 4. Generate a JIT config (orchestrator holds the PAT; the runner never sees it).
