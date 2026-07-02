@@ -1,0 +1,14 @@
+[Unit]
+Description=GHA golden template builder (git pull + packer build + retire old)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/gha-builder
+# Non-secret config + secrets (PROXMOX_TOKEN_ID / PROXMOX_TOKEN):
+EnvironmentFile=/etc/gha-builder/build.env
+EnvironmentFile=/etc/gha-builder/env
+ExecStart=/opt/gha-builder/gha-template-builder.sh
+# Builds can take a while (updates + toolchain).
+TimeoutStartSec=3600

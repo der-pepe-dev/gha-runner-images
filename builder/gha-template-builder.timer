@@ -1,0 +1,11 @@
+[Unit]
+Description=Rebuild the golden templates on a schedule (stay ahead of the Windows eval clock + runner deprecation)
+
+[Timer]
+# Monthly, well inside the ~100-day Windows eval window and the runner deprecation cadence.
+OnCalendar=*-*-01 03:00:00
+Persistent=true
+RandomizedDelaySec=1h
+
+[Install]
+WantedBy=timers.target
