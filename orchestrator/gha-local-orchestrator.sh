@@ -64,6 +64,24 @@ generate_jitconfig() {
   | jq -r '.encoded_jit_config // empty'
 }
 
+# Remove any existing runner registration with this name. A prior JIT config that never
+# connected (VM died mid-cycle) lingers as an offline runner and makes generate-jitconfig
+# fail with 409 on the same name. Best-effort.
+delete_runner_by_name() {
+  local name="$1" base id
+  if [ "$REGISTRATION_SCOPE" = "org" ]; then
+    base="https://api.github.com/orgs/${GITHUB_OWNER}/actions/runners"
+  else
+    base="https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runners"
+  fi
+  id="$(curl -fsS -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+    "${base}?per_page=100" 2>/dev/null | jq -r --arg n "$name" 'first(.runners[]|select(.name==$n)|.id) // empty')"
+  if [ -n "$id" ]; then
+    curl -fsS -X DELETE -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+      "${base}/${id}" >/dev/null 2>&1 || true
+  fi
+}
+
 # --- Proxmox: current status of a VM -----------------------------------------
 get_proxmox_vm_state() {
   local vmid="$1"
@@ -155,8 +173,10 @@ reset_runner_slot() {
   # 3. Wait for the guest agent (near-instant after a vmstate restore).
   wait_for_agent "$vmid" || { echo "ERR ${name}: agent not up" >&2; return 1; }
 
-  # 4. Generate a JIT config (orchestrator holds the PAT; the runner never sees it).
-  jitconfig="$(generate_jitconfig "$GITHUB_OWNER" "$GITHUB_REPO" "$REGISTRATION_SCOPE" "$name" "$labels")"
+  # 4. Clear any stale same-name runner (else generate-jitconfig 409s), then generate a
+  #    fresh JIT config (orchestrator holds the PAT; the runner never sees it).
+  delete_runner_by_name "$name"
+  jitconfig="$(generate_jitconfig "$GITHUB_OWNER" "$GITHUB_REPO" "$REGISTRATION_SCOPE" "$name" "$labels" || true)"
   if [ -z "$jitconfig" ] || [ "$jitconfig" = "null" ]; then
     echo "ERR ${name}: jitconfig generation failed" >&2; return 1
   fi
