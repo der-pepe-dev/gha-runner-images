@@ -137,10 +137,17 @@ reset_runner_slot() {
   upid="$(pve_post "/nodes/${PROXMOX_NODE}/qemu/${vmid}/snapshot/${snapshot}/rollback" | jq -r '.data // empty')"
   wait_for_task "$upid" || { echo "ERR ${name}: rollback failed" >&2; return 1; }
 
-  # 2. Start the VM — unless the rollback already restored a RUNNING VM. A vmstate
-  #    (RAM) snapshot resumes live in ~seconds (agent up, waiter mid-poll), skipping
-  #    the ~60-90s cold boot. An off-state snapshot leaves it stopped, so start then.
-  if [ "$(get_proxmox_vm_state "$vmid" 2>/dev/null)" != "running" ]; then
+  # 2. A vmstate (RAM) snapshot resumes the VM to 'running' ASYNCHRONOUSLY after the
+  #    rollback task returns — restoring a live, agent-up, waiter-polling VM in seconds
+  #    and skipping the ~60-90s cold boot. Wait briefly for that; if it stays stopped
+  #    (off-state snapshot), start it explicitly. (Calling start on an already-running
+  #    VM returns 409 and would abort the run.)
+  running=""
+  for _ in 1 2 3 4 5 6 7 8; do
+    [ "$(get_proxmox_vm_state "$vmid" 2>/dev/null)" = "running" ] && { running=1; break; }
+    sleep 1
+  done
+  if [ -z "$running" ]; then
     upid="$(pve_post "/nodes/${PROXMOX_NODE}/qemu/${vmid}/status/start" | jq -r '.data // empty')"
     wait_for_task "$upid" || { echo "ERR ${name}: start failed" >&2; return 1; }
   fi
