@@ -40,7 +40,12 @@ Defined by the Packer + Ansible automation in this repo:
   clang + zlib1g-dev (Native AOT), cmake, ninja, mingw-w64, binutils, gdb, sqlite3, ffmpeg,
   zip/unzip, python3, Node.js LTS, and the `android` .NET workload. Android SDK/JDK are NOT
   baked — Android jobs provide those (setup-java / android-actions).
-- Visual Studio Build Tools / MSBuild (the `vs-buildtools` Windows runner only)
+- **Windows runner** also bakes (packer/windows): Git, .NET 10 SDK, PowerShell 7 (pwsh),
+  the runner + boot-waiter, and **Visual Studio Build Tools** (`install_buildtools`:
+  MSBuild + ManagedDesktop + VCTools + VC.Tools.x86.x64 + Windows 11 SDK) — so MSBuild,
+  .NET Framework/desktop, native C++, and **Windows Native AOT** work on the core runner.
+  The Windows runner advertises the `vs-buildtools` label. (The separate
+  `windows-gha-buildtools` image is now redundant for most needs — buildtools are in core.)
 
 Anything a project lists above that is **not** in the base image needs a role/playbook
 change here.
