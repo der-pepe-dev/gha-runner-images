@@ -31,6 +31,26 @@ if ($env:PWSH_MSI_URL) {
     Start-Process msiexec -ArgumentList '/i', 'C:\Windows\Temp\pwsh.msi', '/quiet', '/norestart', 'ADD_PATH=1' -Wait
 }
 
+if ($env:INSTALL_BUILDTOOLS -eq 'true') {
+    Write-Host 'Installing Visual Studio Build Tools (MSBuild + MSVC C++ + Windows SDK)...'
+    Invoke-WebRequest $env:VS_BUILDTOOLS_URL -OutFile 'C:\Windows\Temp\vs_BuildTools.exe' -UseBasicParsing
+    # VCTools + VC.Tools + Windows SDK are what .NET Native AOT and C++ builds need; the
+    # MSBuild/ManagedDesktop workloads cover MSBuild + .NET Framework/desktop.
+    $vsArgs = @(
+        '--quiet', '--wait', '--norestart', '--nocache', '--installPath', 'C:\BuildTools',
+        '--add', 'Microsoft.VisualStudio.Workload.MSBuildTools',
+        '--add', 'Microsoft.VisualStudio.Workload.ManagedDesktopBuildTools',
+        '--add', 'Microsoft.VisualStudio.Workload.VCTools',
+        '--add', 'Microsoft.VisualStudio.Component.VC.Tools.x86.x64',
+        '--add', 'Microsoft.VisualStudio.Component.Windows11SDK.22621',
+        '--includeRecommended'
+    )
+    $p = Start-Process 'C:\Windows\Temp\vs_BuildTools.exe' -ArgumentList $vsArgs -Wait -PassThru
+    # 0 = ok, 3010 = ok-but-reboot-required; anything else is a real failure.
+    if ($p.ExitCode -ne 0 -and $p.ExitCode -ne 3010) { throw "VS Build Tools install failed: exit $($p.ExitCode)" }
+    Write-Host "VS Build Tools installed (exit $($p.ExitCode))."
+}
+
 Write-Host 'Updating machine PATH + DOTNET_ROOT...'
 $p = [Environment]::GetEnvironmentVariable('Path', 'Machine')
 $p = ($p.TrimEnd(';') + ';C:\Program Files\dotnet;C:\Program Files\Git\cmd')

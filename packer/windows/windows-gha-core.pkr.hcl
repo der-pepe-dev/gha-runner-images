@@ -79,6 +79,15 @@ variable "pwsh_msi_url" {
   default     = "https://github.com/PowerShell/PowerShell/releases/download/v7.4.6/PowerShell-7.4.6-win-x64.msi"
   description = "PowerShell 7 (pwsh) MSI URL. Server Core only ships Windows PowerShell 5.1."
 }
+variable "install_buildtools" {
+  type        = bool
+  default     = true
+  description = "Bake Visual Studio Build Tools (MSBuild + MSVC C++ + Windows SDK) for native / .NET Framework / Windows Native AOT builds. Big (~8 GB, +15-25 min)."
+}
+variable "vs_buildtools_url" {
+  default     = "https://aka.ms/vs/18/release/vs_BuildTools.exe"
+  description = "Visual Studio Build Tools bootstrapper URL."
+}
 
 variable "cpu_type" {
   type        = string
@@ -236,6 +245,8 @@ build {
       "DOTNET_CHANNEL=${var.dotnet_channel}",
       "GIT_URL=${var.git_for_windows_url}",
       "PWSH_MSI_URL=${var.pwsh_msi_url}",
+      "INSTALL_BUILDTOOLS=${var.install_buildtools}",
+      "VS_BUILDTOOLS_URL=${var.vs_buildtools_url}",
     ]
     scripts = ["scripts/install-runner.ps1"]
   }
