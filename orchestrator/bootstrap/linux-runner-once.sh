@@ -32,14 +32,12 @@ rm -f "$ENV_FILE" 2>/dev/null || true
 
 # A vmstate (RAM) snapshot restore leaves the guest clock frozen at snapshot time (can be
 # far in the past). A stale clock breaks JIT/token auth — GitHub rejects the runner and it
-# exits. Force an immediate NTP resync (timesyncd steps large offsets on restart) before
-# starting the runner. Harmless on a cold boot (clock already correct).
+# exits. Step the clock immediately from an HTTPS Date header (fast, no NTP roundtrip),
+# then hand off to NTP for ongoing accuracy. Harmless on a cold boot (already correct).
+http_date="$(curl -sI --max-time 5 https://github.com 2>/dev/null | awk -F': ' 'tolower($1)=="date"{print $2}' | tr -d '\r')"
+[ -n "$http_date" ] && date -s "$http_date" >/dev/null 2>&1 || true
 timedatectl set-ntp true 2>/dev/null || true
 systemctl restart systemd-timesyncd 2>/dev/null || true
-for _ in $(seq 1 20); do
-  [ "$(timedatectl show -p NTPSynchronized --value 2>/dev/null)" = "yes" ] && break
-  sleep 1
-done
 
 sudo -u "$RUNNER_USER" ./run.sh --jitconfig "$RUNNER_JITCONFIG"
 
