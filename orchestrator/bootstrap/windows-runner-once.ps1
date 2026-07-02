@@ -30,6 +30,15 @@ if (-not (Test-Path '.\run.cmd')) {
 # The injected config is single-use; remove the env file once read.
 Remove-Item $EnvFile -Force -ErrorAction SilentlyContinue
 
+# A vmstate (RAM) snapshot restore freezes the guest clock at snapshot time; a stale clock
+# breaks JIT/token auth (GitHub rejects the runner). Step it from an HTTPS Date header
+# (fast, small skew doesn't break TLS), then hand off to w32time. Harmless on cold boot.
+try {
+    $d = (Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 -Uri 'https://github.com').Headers['Date']
+    if ($d) { Set-Date -Date ([DateTime]::Parse($d)) | Out-Null }
+} catch { }
+try { Start-Service w32time -ErrorAction SilentlyContinue; & w32tm /resync /force | Out-Null } catch { }
+
 try {
     .\run.cmd --jitconfig "$env:RUNNER_JITCONFIG"
 }
