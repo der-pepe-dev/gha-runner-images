@@ -27,6 +27,15 @@ the build-up. The `dotnet_sdk` / `github_runner` roles and the persistent-runner
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-02: **Verified with a real job — full loop passes.** Dispatched a smoke workflow
+  (linux + windows) and both jobs ran on the ephemeral runners and succeeded: job landed
+  (gha-linux-eph02 + gha-win-eph01 went busy) -> baked toolchain ran (git 2.43, dotnet,
+  cmake, node on linux; dotnet/git on windows via `shell: powershell`) -> JIT auto-removed
+  -> VM shut down -> respawned -> 5/5 back online idle. GOTCHA: the fleet repo is PUBLIC and
+  the org Default runner group has allows_public_repositories=false (fork-PR safety), so
+  public repos can't use the org runners; test from a PRIVATE repo (created
+  der-pepe-dev/runner-smoke). Windows has Windows PowerShell 5.1 (works); pwsh 7 is baked in
+  the template config but not in the running slots until the Windows rebuild.
 - 2026-07-02: **Faster respawn — 15s timer (#1) + LAN self-trigger (#2).** Timer 1min->15s.
   Plus a socket-activated reconcile (gha-orch-trigger.socket on :9099) that a finished
   runner pokes right before shutdown (ORCH_TRIGGER_URL injected into the runner env; both
