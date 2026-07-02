@@ -1,0 +1,12 @@
+[Unit]
+Description=LAN trigger socket — a finished runner pokes this to reconcile immediately
+
+[Socket]
+# LAN-only; a finished runner VM connects here right before it shuts down so its slot is
+# reset without waiting for the poll timer. Reconcile is idempotent, so no auth (trust the
+# LAN). Bind to all interfaces on the orchestrator LXC.
+ListenStream=9099
+Accept=no
+
+[Install]
+WantedBy=sockets.target

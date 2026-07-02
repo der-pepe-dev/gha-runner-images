@@ -41,4 +41,10 @@ systemctl restart systemd-timesyncd 2>/dev/null || true
 
 sudo -u "$RUNNER_USER" ./run.sh --jitconfig "$RUNNER_JITCONFIG"
 
+# Poke the orchestrator's LAN trigger so it resets this slot immediately instead of
+# waiting for the poll timer. Best-effort; the timer is the fallback.
+if [ -n "${ORCH_TRIGGER_URL:-}" ]; then
+  curl -fsS --max-time 3 "$ORCH_TRIGGER_URL" >/dev/null 2>&1 || true
+fi
+
 shutdown -h now

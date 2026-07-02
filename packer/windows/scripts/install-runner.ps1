@@ -25,6 +25,12 @@ Write-Host "Installing .NET SDK $ch..."
 Invoke-WebRequest 'https://dot.net/v1/dotnet-install.ps1' -OutFile 'C:\Windows\Temp\dotnet-install.ps1' -UseBasicParsing
 & 'C:\Windows\Temp\dotnet-install.ps1' -Channel $ch -InstallDir 'C:\Program Files\dotnet'
 
+if ($env:PWSH_MSI_URL) {
+    Write-Host 'Installing PowerShell 7 (pwsh)...'
+    Invoke-WebRequest $env:PWSH_MSI_URL -OutFile 'C:\Windows\Temp\pwsh.msi' -UseBasicParsing
+    Start-Process msiexec -ArgumentList '/i', 'C:\Windows\Temp\pwsh.msi', '/quiet', '/norestart', 'ADD_PATH=1' -Wait
+}
+
 Write-Host 'Updating machine PATH + DOTNET_ROOT...'
 $p = [Environment]::GetEnvironmentVariable('Path', 'Machine')
 $p = ($p.TrimEnd(';') + ';C:\Program Files\dotnet;C:\Program Files\Git\cmd')

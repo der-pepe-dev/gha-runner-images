@@ -1,0 +1,7 @@
+[Unit]
+Description=Reconcile runner slots on LAN trigger (socket-activated)
+Requires=gha-orch-trigger.socket
+
+[Service]
+Type=oneshot
+ExecStart=/opt/gha-local-orchestrator/gha-orch-trigger.sh

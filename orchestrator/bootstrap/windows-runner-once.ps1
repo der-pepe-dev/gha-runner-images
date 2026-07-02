@@ -43,5 +43,10 @@ try {
     .\run.cmd --jitconfig "$env:RUNNER_JITCONFIG"
 }
 finally {
+    # Poke the orchestrator's LAN trigger for an immediate slot reset (skip the poll-timer
+    # wait). Best-effort; the timer is the fallback.
+    if ($env:ORCH_TRIGGER_URL) {
+        try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 3 -Uri $env:ORCH_TRIGGER_URL | Out-Null } catch { }
+    }
     Stop-Computer -Force
 }

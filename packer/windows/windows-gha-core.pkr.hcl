@@ -75,6 +75,10 @@ variable "git_for_windows_url" {
   default     = "https://github.com/git-for-windows/git/releases/download/v2.51.0.windows.1/Git-2.51.0-64-bit.exe"
   description = "Git for Windows installer URL."
 }
+variable "pwsh_msi_url" {
+  default     = "https://github.com/PowerShell/PowerShell/releases/download/v7.4.6/PowerShell-7.4.6-win-x64.msi"
+  description = "PowerShell 7 (pwsh) MSI URL. Server Core only ships Windows PowerShell 5.1."
+}
 
 variable "cpu_type" {
   type        = string
@@ -231,6 +235,7 @@ build {
       "RUNNER_VERSION=${var.runner_version}",
       "DOTNET_CHANNEL=${var.dotnet_channel}",
       "GIT_URL=${var.git_for_windows_url}",
+      "PWSH_MSI_URL=${var.pwsh_msi_url}",
     ]
     scripts = ["scripts/install-runner.ps1"]
   }

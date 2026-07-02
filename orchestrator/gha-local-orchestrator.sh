@@ -41,6 +41,12 @@ source "$CONFIG_FILE"
 
 PVE_AUTH="Authorization: PVEAPIToken=${PROXMOX_TOKEN_ID}=${PROXMOX_TOKEN}"
 
+# This orchestrator LXC's LAN address, injected into the runner env so a finished runner
+# can poke the trigger socket for an immediate reset (see gha-orch-trigger.socket). Falls
+# back to empty -> the runner just shuts down and the 15s timer picks it up.
+ORCH_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+ORCH_TRIGGER_URL="http://${ORCH_IP}:9099/"
+
 # --- GitHub: generate a JIT (just-in-time) runner config ----------------------
 # Returns the base64 encoded_jit_config. The runner runs `run.sh --jitconfig <blob>`
 # directly — no config.sh, no registration token on disk, inherently single-use +
@@ -184,10 +190,12 @@ reset_runner_slot() {
   # 5. Inject the JIT config via the guest agent (OS-specific path + format).
   if [ "$os" = "windows" ]; then
     env_path='C:\gha-runner\runner.env.ps1'
-    env_content="\$env:RUNNER_JITCONFIG='${jitconfig}'"
+    env_content="\$env:RUNNER_JITCONFIG='${jitconfig}'
+\$env:ORCH_TRIGGER_URL='${ORCH_TRIGGER_URL}'"
   else
     env_path='/etc/gha-runner/env'
-    env_content="RUNNER_JITCONFIG=${jitconfig}"
+    env_content="RUNNER_JITCONFIG=${jitconfig}
+ORCH_TRIGGER_URL=${ORCH_TRIGGER_URL}"
   fi
   pve_agent_write_file "$vmid" "$env_path" "$env_content" \
     || { echo "ERR ${name}: jitconfig injection failed" >&2; return 1; }

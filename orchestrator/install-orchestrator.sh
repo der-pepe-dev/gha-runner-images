@@ -27,6 +27,7 @@ fi
 echo "== installing scripts to ${APP} =="
 install -d "$APP" "$CFG"
 install -m 0755 "$SD/gha-local-orchestrator.sh" "$APP/gha-local-orchestrator.sh"
+install -m 0755 "$SD/gha-orch-trigger.sh" "$APP/gha-orch-trigger.sh"
 [ -f "$SD/check-windows-template-age.sh" ] && install -m 0755 "$SD/check-windows-template-age.sh" "$APP/"
 
 echo "== config ${CFG}/node.local.env =="
@@ -58,11 +59,15 @@ fi
 echo "== systemd units =="
 install -m 0644 "$SD/gha-local-orchestrator.service" /etc/systemd/system/
 install -m 0644 "$SD/gha-local-orchestrator.timer"   /etc/systemd/system/
+install -m 0644 "$SD/gha-orch-trigger.service" /etc/systemd/system/
+install -m 0644 "$SD/gha-orch-trigger.socket"  /etc/systemd/system/
 for u in gha-template-age-check.service gha-template-age-check.timer; do
   [ -f "$SD/$u" ] && install -m 0644 "$SD/$u" /etc/systemd/system/
 done
 systemctl daemon-reload
 systemctl enable --now gha-local-orchestrator.timer
+# LAN self-trigger socket (a finished runner pokes it for an immediate reset).
+systemctl enable --now gha-orch-trigger.socket
 if [ -f /etc/systemd/system/gha-template-age-check.timer ]; then
   systemctl enable --now gha-template-age-check.timer
 fi
