@@ -27,6 +27,14 @@ the build-up. The `dotnet_sdk` / `github_runner` roles and the persistent-runner
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-02: **Windows ephemeral on the vmstate fast-path too (~29s).** Converted the
+  Windows slots (321 pve1, 323 pve3) to vmstate (RAM) `clean` snapshots and patched their
+  baked windows-runner-once.ps1 with the HTTPS-Date clock step (vmstate freezes the Windows
+  clock like Linux). gha-win-eph01 online in 29s (was ~50-60s cold). Full fleet now: 3 linux
+  (~15s) + 2 windows (~29s), all JIT, all cycling autonomously.
+  FOLLOW-UP: both golden templates (108 linux, 107 windows) still carry the pre-clock-fix
+  bootstraps — the LIVE slots are patched + committed, but rebuild both templates (repo has
+  the fixes) before any re-seed, or a re-seed will regress the clock fix.
 - 2026-07-02: **Windows ephemeral runners work.** Rebuilt the Windows template (107)
   baking Git + .NET 10 SDK + the runner package (unregistered) + a SYSTEM at-startup
   Scheduled Task (gha-runner-waiter.ps1) that waits for the orchestrator-injected
