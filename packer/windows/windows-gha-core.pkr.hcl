@@ -63,6 +63,19 @@ variable "install_updates" {
   description = "Run Windows Update during the build (adds significant time). Set false for fast test builds."
 }
 
+variable "runner_version" {
+  default     = "2.335.1"
+  description = "GitHub Actions runner version to bake (unregistered). Builder auto-bumps to latest."
+}
+variable "dotnet_channel" {
+  default     = "10.0"
+  description = ".NET SDK channel to bake (matches the dotnet10 label)."
+}
+variable "git_for_windows_url" {
+  default     = "https://github.com/git-for-windows/git/releases/download/v2.51.0.windows.1/Git-2.51.0-64-bit.exe"
+  description = "Git for Windows installer URL."
+}
+
 variable "cpu_type" {
   type        = string
   default     = "host"
@@ -204,9 +217,25 @@ build {
     }
   }
 
-  # The guest agent + virtio drivers are installed at FirstLogon (autounattend) — the
-  # builder needs the agent up to discover the VM IP for WinRM, well before provisioners
-  # run — so only cleanup runs here.
+  # Upload the JIT bootstrap + boot waiter, then bake the toolchain + runner + waiter task.
+  provisioner "file" {
+    source      = "../../orchestrator/bootstrap/windows-runner-once.ps1"
+    destination = "C:/Windows/Temp/windows-runner-once.ps1"
+  }
+  provisioner "file" {
+    source      = "../../orchestrator/bootstrap/gha-runner-waiter.ps1"
+    destination = "C:/Windows/Temp/gha-runner-waiter.ps1"
+  }
+  provisioner "powershell" {
+    environment_vars = [
+      "RUNNER_VERSION=${var.runner_version}",
+      "DOTNET_CHANNEL=${var.dotnet_channel}",
+      "GIT_URL=${var.git_for_windows_url}",
+    ]
+    scripts = ["scripts/install-runner.ps1"]
+  }
+
+  # cleanup last — the proxmox-iso builder stops the VM itself once provisioning finishes.
   provisioner "powershell" {
     scripts = [
       "scripts/cleanup.ps1"
