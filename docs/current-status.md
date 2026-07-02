@@ -27,6 +27,16 @@ the build-up. The `dotnet_sdk` / `github_runner` roles and the persistent-runner
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-02: **Fast-path recovery via vmstate (RAM) snapshots — ~12-17s.** `clean`
+  snapshots now include RAM: rollback restores a live, agent-up, waiter-polling VM in
+  seconds, skipping the ~60-90s cold boot. Orchestrator changes: skip start when rollback
+  already left the VM running (poll for 'running' to avoid a 409-on-start crash), and
+  delete any stale same-name runner before generate-jitconfig (a JIT config that never
+  connected lingers offline and 409s). KEY GOTCHA: a vmstate restore freezes the guest
+  clock (seen ~1h40m behind) which breaks JIT/token auth — the linux bootstrap now steps
+  the clock from an HTTPS Date header before run.sh. Reconcile cron also 1min (was 2). Live
+  slots patched + re-vmstate-snapshotted; the Linux TEMPLATE (108) still has the pre-fix
+  bootstrap, so rebuild it (repo has the fix) before the next re-seed.
 - 2026-07-02: **CI toolchain baked into the Linux runner + fleet re-seeded.** Template 108
   bakes .NET 10 SDK (incl. Native AOT via clang+zlib), cmake, ninja, mingw-w64, binutils,
   sqlite3, ffmpeg, zip, python3, PowerShell 7, and Node.js LTS (extensible via
