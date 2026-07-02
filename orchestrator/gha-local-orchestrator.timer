@@ -2,9 +2,9 @@
 Description=Run GitHub Actions local runner orchestrator periodically
 
 [Timer]
-OnBootSec=1min
-OnUnitActiveSec=1min
-AccuracySec=10s
+OnBootSec=15s
+OnUnitActiveSec=15s
+AccuracySec=2s
 Persistent=true
 
 [Install]
