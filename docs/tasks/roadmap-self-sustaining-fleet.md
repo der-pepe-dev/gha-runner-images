@@ -31,7 +31,7 @@ lifecycle; 1 HA builder owns image regeneration (single cluster-wide template).
       (`node.local.env`), secrets EnvironmentFile (Proxmox + GitHub tokens, least
       privilege), and the reconcile service+timer. Stays tiny (bash + curl + jq).
 
-## Phase 4 — Provision the HA builder (self-regenerating images)
+## Phase 4 — HA builder (DEPLOYED + verified 2026-07-03)
 
 - [ ] Builder LXC (~1-2 GB): Packer + git checkout of this repo + build tokens (Proxmox
       build-priv token, build password) + CephFS ISO access. Rootfs on Ceph.

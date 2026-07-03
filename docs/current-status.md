@@ -27,6 +27,19 @@ the build-up. The `dotnet_sdk` / `github_runner` roles and the persistent-runner
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-03: **Phase 4 — HA template builder deployed + verified (image regen leaves WSL).**
+  gha-builder LXC (289, 2 GB, Ceph rootfs) provisioned via builder/install-builder.sh:
+  Packer v1.15.4, repo clone, secrets EnvironmentFile, monthly timer. Full loop proven:
+  service run -> git pull -> discover generates pkrvars -> fetch latest runner version ->
+  packer build linux template (108) -> retire old -> handover (orchestrator configs ->108)
+  -> /runner-reseed from 108 -> clean vmstate -> eph02 online -> 5/5. Fixes found: the
+  service needs Environment=HOME=/root (packer config dir); retire jq was .[] not .data[].
+  OPEN: (1) HA-add returned 403 (build token lacks Sys.Modify) — add ct:289 to a Proxmox HA
+  group via the UI; non-critical since the builder isn't in the runtime path. (2) Builder
+  does linux only — Windows regen needs the gitignored autounattend.xml + winrm_password
+  provisioned on the builder. (3) Handover (config update + re-seed) is still manual/skill;
+  the BUILD is autonomous. The self-sustaining vision (runners + image regen, no laptop) is
+  now deployed end to end.
 - 2026-07-03: **VM hostname now = runner name.** Orchestrator injects RUNNER_NAME; linux
   bootstrap runs `hostnamectl set-hostname` per boot (immediate, durable — baked in the
   repo bootstrap, survives future template rebuilds). Windows renamed per-slot in the clean
