@@ -1,0 +1,22 @@
+services:
+  gha-nas-linux:
+    build: .
+    image: gha-nas-linux-runner:latest
+    restart: unless-stopped
+    # RUNNER_NAME is intentionally unset so `--scale` gives each replica a unique
+    # hostname-based name. Set it only when running a single fixed-name runner.
+    environment:
+      GITHUB_OWNER: der-pepe-dev
+      RUNNER_LABELS: "self-hosted,linux,x64,dotnet10,nas,beefy,gpu"
+      # RUNNER_NAME: gha-nas-linux01
+    env_file:
+      - runner.secret.env          # GITHUB_TOKEN=... (gitignored)
+    # Shared GPU via the nvidia runtime (same as your other TrueNAS apps). On TrueNAS you
+    # can instead allocate the GPU in the app UI; keep whichever your install honors.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
