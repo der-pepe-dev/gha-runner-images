@@ -20,6 +20,12 @@ fi
 RUNNER_DIR="${RUNNER_DIR:-/opt/actions-runner}"
 RUNNER_USER="${RUNNER_USER:-gha-runner}"
 
+# Set the machine hostname to the runner name (all clones share the template hostname
+# otherwise). Immediate, no reboot. Best-effort.
+if [[ -n "${RUNNER_NAME:-}" ]]; then
+  hostnamectl set-hostname "$RUNNER_NAME" 2>/dev/null || true
+fi
+
 cd "$RUNNER_DIR"
 if [[ ! -x ./run.sh ]]; then
   echo "run.sh not found in $RUNNER_DIR; bake the runner package before using this script." >&2

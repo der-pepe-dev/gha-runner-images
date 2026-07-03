@@ -191,11 +191,13 @@ reset_runner_slot() {
   if [ "$os" = "windows" ]; then
     env_path='C:\gha-runner\runner.env.ps1'
     env_content="\$env:RUNNER_JITCONFIG='${jitconfig}'
-\$env:ORCH_TRIGGER_URL='${ORCH_TRIGGER_URL}'"
+\$env:ORCH_TRIGGER_URL='${ORCH_TRIGGER_URL}'
+\$env:RUNNER_NAME='${name}'"
   else
     env_path='/etc/gha-runner/env'
     env_content="RUNNER_JITCONFIG=${jitconfig}
-ORCH_TRIGGER_URL=${ORCH_TRIGGER_URL}"
+ORCH_TRIGGER_URL=${ORCH_TRIGGER_URL}
+RUNNER_NAME=${name}"
   fi
   pve_agent_write_file "$vmid" "$env_path" "$env_content" \
     || { echo "ERR ${name}: jitconfig injection failed" >&2; return 1; }
