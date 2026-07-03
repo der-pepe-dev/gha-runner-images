@@ -151,3 +151,12 @@ comes online. Symptom seen on slot 311. Rule: before any resnap, stop BOTH
 gha-local-orchestrator.timer and gha-orch-trigger.socket on that node. To recover a bad
 snapshot: rollback, kill Runner.Listener, rm .runner/.credentials*/_diag/*/etc/gha-runner/env,
 restart gha-runner-waiter, then re-snapshot.
+
+### 2026-07-03: VS Build Tools bootstrapper — use vs/17, verify the download
+
+aka.ms/vs/18/release/vs_BuildTools.exe did not resolve to a real bootstrapper -> the
+saved file was corrupt -> Start-Process failed with "The file or directory is corrupted
+and unreadable" (0x80070570). Use the stable VS 2022 URL aka.ms/vs/17/release/vs_BuildTools.exe
+(verified ~4.4 MB PE), force TLS1.2, and size-check (> 1 MB) + Unblock-File before running.
+For .NET Native AOT / native C++ on Windows the SDK is NOT enough — bake VS Build Tools with
+the VCTools workload + VC.Tools.x86.x64 + a Windows SDK.

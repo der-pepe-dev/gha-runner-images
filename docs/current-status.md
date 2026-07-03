@@ -27,6 +27,16 @@ the build-up. The `dotnet_sdk` / `github_runner` roles and the persistent-runner
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-03: **Windows template rebuilt all-in-one + verified.** New template (106) bakes
+  Git + .NET 10 SDK + PowerShell 7 (pwsh) + Visual Studio Build Tools (MSBuildTools +
+  ManagedDesktop + VCTools + VC.Tools.x86.x64 + Windows 11 SDK) + runner + boot-waiter
+  (clock-fix + LAN trigger). Covers MSBuild, .NET Framework/desktop, native C++, and
+  Windows Native AOT (needs the MSVC linker). Re-seeded win slots 321/323 from 106 with
+  vmstate clean; runners now advertise vs-buildtools. Verified via a real job: windows
+  smoke used `shell: pwsh` and vswhere-found VC.Tools -> success. GOTCHA: vs/18 bootstrapper
+  URL was invalid ("file corrupted and unreadable" at Start-Process) -> use vs/17 (VS 2022)
+  + size-check the download. buildtools now IN the core Windows image (separate
+  windows-gha-buildtools image redundant). Fleet 5/5.
 - 2026-07-02: **Verified with a real job — full loop passes.** Dispatched a smoke workflow
   (linux + windows) and both jobs ran on the ephemeral runners and succeeded: job landed
   (gha-linux-eph02 + gha-win-eph01 went busy) -> baked toolchain ran (git 2.43, dotnet,
