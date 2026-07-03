@@ -33,7 +33,14 @@ if ($env:PWSH_MSI_URL) {
 
 if ($env:INSTALL_BUILDTOOLS -eq 'true') {
     Write-Host 'Installing Visual Studio Build Tools (MSBuild + MSVC C++ + Windows SDK)...'
-    Invoke-WebRequest $env:VS_BUILDTOOLS_URL -OutFile 'C:\Windows\Temp\vs_BuildTools.exe' -UseBasicParsing
+    $bt = 'C:\Windows\Temp\vs_BuildTools.exe'
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    Invoke-WebRequest $env:VS_BUILDTOOLS_URL -OutFile $bt -UseBasicParsing
+    # The bootstrapper is a real PE ~1-4 MB; a truncated/redirect download shows up as
+    # "corrupted and unreadable" at Start-Process, so sanity-check before running.
+    $sz = (Get-Item $bt).Length
+    if ($sz -lt 1MB) { throw "vs_BuildTools.exe download looks bad ($sz bytes)" }
+    Unblock-File $bt
     # VCTools + VC.Tools + Windows SDK are what .NET Native AOT and C++ builds need; the
     # MSBuild/ManagedDesktop workloads cover MSBuild + .NET Framework/desktop.
     $vsArgs = @(

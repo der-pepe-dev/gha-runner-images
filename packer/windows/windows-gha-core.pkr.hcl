@@ -85,8 +85,8 @@ variable "install_buildtools" {
   description = "Bake Visual Studio Build Tools (MSBuild + MSVC C++ + Windows SDK) for native / .NET Framework / Windows Native AOT builds. Big (~8 GB, +15-25 min)."
 }
 variable "vs_buildtools_url" {
-  default     = "https://aka.ms/vs/18/release/vs_BuildTools.exe"
-  description = "Visual Studio Build Tools bootstrapper URL."
+  default     = "https://aka.ms/vs/17/release/vs_BuildTools.exe"
+  description = "Visual Studio Build Tools bootstrapper URL (VS 2022 = vs/17, stable)."
 }
 
 variable "cpu_type" {
