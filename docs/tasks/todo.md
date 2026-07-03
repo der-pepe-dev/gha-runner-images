@@ -23,3 +23,15 @@ Durable, prioritized task list. Active work goes in `tasks/<task-name>.md`, not 
   the GPU.
 - **NAS Windows runner**: skipped for now; if ever needed, an Incus VM (TrueNAS 25.10 = Incus)
   with a JIT loop, no GPU.
+
+## macOS / "Hackintosh" runner — future (noted 2026-07-03)
+
+- **For iOS/Mac/MAUI targets.** LICENSING: macOS EULA = Apple hardware only; a Hackintosh VM
+  is outside it (homelab risk call). Clean alternative: an Apple-silicon Mac mini as a runner.
+- **Host: Proxmox, not TrueNAS.** PVE has the mature macOS-KVM path (OSX-KVM / OpenCore: OSK
+  key, cpu=host + macOS QEMU args, OVMF, virtio/vmxnet, optional GPU passthrough). Incus on
+  TrueNAS fights the macOS-specific QEMU quirks.
+- **Runner model: self-mint JIT** (PAT in the VM, entrypoint loops like the Docker NAS
+  runner) — the Proxmox guest-agent inject is unreliable on macOS. Off-state snapshot (cold
+  boot) rather than vmstate (macOS + RAM snapshot is finicky). Labels
+  `self-hosted,macos,x64|arm64,nas` (+ `xcode` etc. as needed).
