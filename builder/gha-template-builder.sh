@@ -24,10 +24,10 @@ retire_old_templates() {
   local name="$1" keep node vmid
   # highest vmid with this name that is a template = the freshest build
   keep="$(api "${PROXMOX_URL}/cluster/resources?type=vm" \
-    | jq -r --arg n "$name" '[.[]|select(.template==1 and .name==$n)]|max_by(.vmid)|.vmid // empty')"
+    | jq -r --arg n "$name" '[.data[]|select(.template==1 and .name==$n)]|max_by(.vmid)|.vmid // empty')"
   [ -n "$keep" ] || { log "no template named $name found (build failed?)"; return 1; }
   api "${PROXMOX_URL}/cluster/resources?type=vm" \
-    | jq -r --arg n "$name" --argjson keep "$keep" '.[]|select(.template==1 and .name==$n and .vmid!=$keep)|"\(.vmid) \(.node)"' \
+    | jq -r --arg n "$name" --argjson keep "$keep" '.data[]|select(.template==1 and .name==$n and .vmid!=$keep)|"\(.vmid) \(.node)"' \
     | while read -r vmid node; do
         [ -n "$vmid" ] || continue
         log "retiring old template $vmid ($name) on $node"
