@@ -5,12 +5,13 @@ services:
     # Single-shot entrypoint: runs one job then exits, so restart:always gives every job a
     # fresh container. No separate orchestrator — the container self-mints its JIT config.
     restart: always
-    # RUNNER_NAME is intentionally unset so `--scale` gives each replica a unique
-    # hostname-based name. Set it only when running a single fixed-name runner.
     environment:
       GITHUB_OWNER: der-pepe-dev
       RUNNER_LABELS: "self-hosted,linux,x64,dotnet10,nas,gpu"
-      # RUNNER_NAME: gha-nas-linux01
+      # Single NAS runner, fleet-consistent name (eph00). del_stale in the entrypoint clears
+      # the prior registration before each restart so the fixed name doesn't 409. To scale to
+      # N runners, unset RUNNER_NAME (each replica self-names by hostname) and `--scale`.
+      RUNNER_NAME: gha-linux-eph00
       # Set GITHUB_TOKEN as an app Environment Variable in the TrueNAS app config
       # (fine-grained org PAT: Self-hosted runners = RW). Passed through here from the app
       # env; for plain `docker compose` CLI use, drop this line and use env_file below.

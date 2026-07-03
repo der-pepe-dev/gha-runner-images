@@ -52,7 +52,8 @@ runs-on: [self-hosted, linux, x64, dotnet10, nas, gpu]
 
 ## Scale
 
-Leave `RUNNER_NAME` unset and run N replicas — each gets a unique hostname-based name:
+The default runs a single runner named `gha-linux-eph00`. To scale to N, remove the
+`RUNNER_NAME` line (each replica self-names by hostname) and run replicas:
 ```bash
 docker compose up -d --scale gha-nas-linux=3
 ```
