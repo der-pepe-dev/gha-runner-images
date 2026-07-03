@@ -6,6 +6,8 @@ After=network-online.target
 [Service]
 Type=oneshot
 WorkingDirectory=/opt/gha-builder
+# Packer needs HOME for its config/plugin dir; systemd services have none by default.
+Environment=HOME=/root
 # Non-secret config + secrets (PROXMOX_TOKEN_ID / PROXMOX_TOKEN):
 EnvironmentFile=/etc/gha-builder/build.env
 EnvironmentFile=/etc/gha-builder/env
