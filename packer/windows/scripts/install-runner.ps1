@@ -58,9 +58,25 @@ if ($env:INSTALL_BUILDTOOLS -eq 'true') {
     Write-Host "VS Build Tools installed (exit $($p.ExitCode))."
 }
 
+# Standalone CMake + Ninja on PATH (VS Build Tools bundles CMake but not on PATH; mirrors
+# the Linux image so cmake/ninja "just work").
+if ($env:CMAKE_VERSION) {
+    Write-Host "Installing CMake $env:CMAKE_VERSION..."
+    Invoke-WebRequest "https://github.com/Kitware/CMake/releases/download/v$($env:CMAKE_VERSION)/cmake-$($env:CMAKE_VERSION)-windows-x86_64.zip" -OutFile 'C:\Windows\Temp\cmake.zip' -UseBasicParsing
+    Expand-Archive 'C:\Windows\Temp\cmake.zip' -DestinationPath 'C:\Windows\Temp\cmakex' -Force
+    if (Test-Path 'C:\Program Files\CMake') { Remove-Item 'C:\Program Files\CMake' -Recurse -Force }
+    Move-Item (Get-ChildItem 'C:\Windows\Temp\cmakex' -Directory | Select-Object -First 1).FullName 'C:\Program Files\CMake'
+}
+if ($env:NINJA_VERSION) {
+    Write-Host "Installing Ninja $env:NINJA_VERSION..."
+    New-Item -ItemType Directory -Force 'C:\Program Files\Ninja' | Out-Null
+    Invoke-WebRequest "https://github.com/ninja-build/ninja/releases/download/v$($env:NINJA_VERSION)/ninja-win.zip" -OutFile 'C:\Windows\Temp\ninja.zip' -UseBasicParsing
+    Expand-Archive 'C:\Windows\Temp\ninja.zip' -DestinationPath 'C:\Program Files\Ninja' -Force
+}
+
 Write-Host 'Updating machine PATH + DOTNET_ROOT...'
 $p = [Environment]::GetEnvironmentVariable('Path', 'Machine')
-$p = ($p.TrimEnd(';') + ';C:\Program Files\dotnet;C:\Program Files\Git\cmd')
+$p = ($p.TrimEnd(';') + ';C:\Program Files\dotnet;C:\Program Files\Git\cmd;C:\Program Files\CMake\bin;C:\Program Files\Ninja')
 [Environment]::SetEnvironmentVariable('Path', $p, 'Machine')
 [Environment]::SetEnvironmentVariable('DOTNET_ROOT', 'C:\Program Files\dotnet', 'Machine')
 

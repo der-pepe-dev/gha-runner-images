@@ -88,6 +88,14 @@ variable "vs_buildtools_url" {
   default     = "https://aka.ms/vs/17/release/vs_BuildTools.exe"
   description = "Visual Studio Build Tools bootstrapper URL (VS 2022 = vs/17, stable)."
 }
+variable "cmake_version" {
+  default     = "3.30.5"
+  description = "Standalone CMake version to install on PATH (mirrors the linux image)."
+}
+variable "ninja_version" {
+  default     = "1.12.1"
+  description = "Standalone Ninja version to install on PATH."
+}
 
 variable "cpu_type" {
   type        = string
@@ -247,6 +255,8 @@ build {
       "PWSH_MSI_URL=${var.pwsh_msi_url}",
       "INSTALL_BUILDTOOLS=${var.install_buildtools}",
       "VS_BUILDTOOLS_URL=${var.vs_buildtools_url}",
+      "CMAKE_VERSION=${var.cmake_version}",
+      "NINJA_VERSION=${var.ninja_version}",
     ]
     scripts = ["scripts/install-runner.ps1"]
   }
