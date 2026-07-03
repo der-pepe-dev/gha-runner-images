@@ -11,24 +11,33 @@ set -uo pipefail
 
 : "${GITHUB_OWNER:?set GITHUB_OWNER}"
 : "${GITHUB_TOKEN:?set GITHUB_TOKEN (fine-grained org PAT: self-hosted-runners RW)}"
-NAME="${RUNNER_NAME:-gha-nas-linux-$(hostname)}"
+BASE="${RUNNER_NAME:-gha-nas-linux-$(hostname)}"
+# Unique per run: a container killed mid-job leaves an offline+busy registration that GitHub
+# refuses to delete (422), which would 409 a reused name. A random suffix sidesteps it — the
+# name is transient anyway (ephemeral JIT) and the labels are the real identity.
+NAME="${BASE}-$(head -c3 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 LABELS="${RUNNER_LABELS:-self-hosted,linux,x64,dotnet10,nas,gpu,android}"
 API="https://api.github.com/orgs/${GITHUB_OWNER}/actions/runners"
 GH=(-H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28")
 
 fail_sleep() { echo "$1" >&2; sleep "${RETRY_DELAY:-10}"; exit 1; }
 
-# A prior JIT config that never connected lingers offline and 409s a new one with this name.
-del_stale() {
-  local id
-  id="$(curl -fsS "${GH[@]}" "${API}?per_page=100" 2>/dev/null | jq -r --arg n "$NAME" 'first(.runners[]|select(.name==$n)|.id) // empty')"
-  if [ -n "$id" ]; then curl -fsS -X DELETE "${GH[@]}" "${API}/${id}" >/dev/null 2>&1 || true; fi
+# Best-effort tidy: remove OFFLINE, non-busy leftovers sharing our base name (cleanly stopped
+# containers). Busy ones (killed mid-job) 422 on delete and self-clear when GitHub times the
+# orphaned job out; the unique NAME means they never block us meanwhile.
+cleanup_orphans() {
+  curl -fsS "${GH[@]}" "${API}?per_page=100" 2>/dev/null \
+    | jq -r --arg b "$BASE" '.runners[]|select((.name|startswith($b)) and .status=="offline" and (.busy|not))|.id' \
+    | while read -r id; do
+        [ -n "$id" ] || continue
+        curl -fsS -X DELETE "${GH[@]}" "${API}/${id}" >/dev/null 2>&1 || true
+      done
 }
 
 echo "NAS linux runner: name=${NAME} labels=${LABELS}"
 nvidia-smi -L 2>/dev/null | head -1 || echo "(no GPU visible — check the app's GPU allocation)"
 
-del_stale
+cleanup_orphans
 labels_json="$(printf '%s' "$LABELS" | jq -R 'split(",")')"
 body="$(jq -n --arg n "$NAME" --argjson l "$labels_json" '{name:$n, runner_group_id:1, labels:$l, work_folder:"_work"}')"
 jit="$(curl -fsS -X POST "${API}/generate-jitconfig" "${GH[@]}" -d "$body" | jq -r '.encoded_jit_config // empty')" \
