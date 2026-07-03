@@ -27,6 +27,18 @@ the build-up. The `dotnet_sdk` / `github_runner` roles and the persistent-runner
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-03: **Linux runners went offline — bad vmstate snapshots; recovered.** All 3 linux
+  slots' `clean` snapshots had captured a *running, registered* runner (not the clean-waiting
+  state) because the trigger socket was active during the trigger-curl resnap -> a poke
+  injected a JIT env mid-resnap -> the waiter ran the runner -> snapshot froze it. On
+  rollback the runner resumed with a stale session (offline) and the VM never shut down, so
+  the orchestrator (resets only *stopped*) skipped it -> stuck offline. Recovered by
+  clean-resnapping with timers AND sockets paused (rollback -> kill runner + wipe
+  .runner/.credentials/env -> restart waiter -> vmstate snapshot). 5/5 back online.
+  DURABLE FIX (recommended next): the linux template (108) still has the pre-fix bootstrap;
+  rebuild it (repo has clock-fix + trigger baked) and re-seed the linux slots from it so the
+  vmstate snapshot is created once cleanly at clone time (as the Windows re-seed already
+  does) — no more fragile manual patch+resnap.
 - 2026-07-03: **Windows template rebuilt all-in-one + verified.** New template (106) bakes
   Git + .NET 10 SDK + PowerShell 7 (pwsh) + Visual Studio Build Tools (MSBuildTools +
   ManagedDesktop + VCTools + VC.Tools.x86.x64 + Windows 11 SDK) + runner + boot-waiter
