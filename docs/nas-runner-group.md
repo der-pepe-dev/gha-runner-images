@@ -85,3 +85,12 @@ VM or container reset is preferred over a long-lived dirty runner.
 ## Scheduling policy
 
 Do not over-route normal jobs to the NAS. The default labels should keep normal jobs spread across the lightweight Proxmox fleet. Use `beefy`, `nas`, or `vs-buildtools` labels only when the workflow actually needs them.
+
+## Implementation
+
+- **Linux beefy (GPU)** — `docker/nas-linux-runner/`: a TrueNAS Scale 25.10 (Goldeye)
+  Docker app. Runs as a container so it **shares the GPU** with your other apps (a VM
+  would need exclusive passthrough). CUDA-devel base + the full CI toolchain + a JIT loop
+  (mint config → one job → repeat). Labels `nas,beefy,gpu`. See its README to deploy.
+- **Windows beefy** — deferred; would be an Incus VM (TrueNAS 25.10 uses Incus for VMs),
+  without GPU (Windows can't share it). Port of the Proxmox windows image + JIT loop.

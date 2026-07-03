@@ -27,6 +27,13 @@ the build-up. The `dotnet_sdk` / `github_runner` roles and the persistent-runner
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-03: **NAS beefy Linux GPU runner authored (TrueNAS Docker app).** docker/nas-linux-runner/:
+  CUDA-devel image + full CI toolchain + actions runner + a JIT loop, deployed as a TrueNAS
+  Scale 25.10 (Goldeye) custom app so it SHARES the GPU with other apps (a VM needs exclusive
+  passthrough; the GPU is app-used). Ephemeral by container; PAT stays in the app secret;
+  labels nas,beefy,gpu; scale via replicas. NOT yet deployed/tested — needs the TrueNAS box
+  (no access from the dev host). Windows-beefy deferred (Incus VM, no GPU). TrueNAS 25.10
+  virtualization is Incus, so a future windows/VM port maps to incus snapshot/restore.
 - 2026-07-03: **Phase 4 — HA template builder deployed + verified (image regen leaves WSL).**
   gha-builder LXC (289, 2 GB, Ceph rootfs) provisioned via builder/install-builder.sh:
   Packer v1.15.4, repo clone, secrets EnvironmentFile, monthly timer. Full loop proven:
