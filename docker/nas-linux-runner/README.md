@@ -57,7 +57,6 @@ The default runs a single runner named `gha-linux-eph00`. To scale to N, remove 
 ```bash
 docker compose up -d --scale gha-nas-linux=3
 ```
-For a single fixed-name runner, set `RUNNER_NAME` in the compose env.
 
 ## Notes
 
