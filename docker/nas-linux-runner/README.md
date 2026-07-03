@@ -25,7 +25,8 @@ ever need the PAT fully off the runner, front it with a small minter sidecar tha
 container only the JIT config.
 
 Baked toolchain (mirrors the Proxmox Linux image): .NET 10 SDK, PowerShell 7, Node LTS,
-build-essential + clang/zlib (Native AOT), cmake, ninja, mingw-w64, sqlite3, ffmpeg, python3
+build-essential + clang/zlib (Native AOT), cmake, ninja, mingw-w64, sqlite3, ffmpeg, python3,
+JDK 17 + Android SDK + the .NET `android` workload (INSTALL_ANDROID=1)
 — on a CUDA `devel` base (nvcc + CUDA libs) so GPU jobs build and run.
 
 ## Deploy (TrueNAS 25.10 custom app / docker compose)

@@ -7,7 +7,7 @@ services:
     restart: always
     environment:
       GITHUB_OWNER: der-pepe-dev
-      RUNNER_LABELS: "self-hosted,linux,x64,dotnet10,nas,gpu"
+      RUNNER_LABELS: "self-hosted,linux,x64,dotnet10,nas,gpu,android"
       # Single NAS runner, fleet-consistent name (eph00). del_stale in the entrypoint clears
       # the prior registration before each restart so the fixed name doesn't 409. To scale to
       # N runners, unset RUNNER_NAME (each replica self-names by hostname) and `--scale`.

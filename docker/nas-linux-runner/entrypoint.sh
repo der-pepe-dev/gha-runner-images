@@ -12,7 +12,7 @@ set -uo pipefail
 : "${GITHUB_OWNER:?set GITHUB_OWNER}"
 : "${GITHUB_TOKEN:?set GITHUB_TOKEN (fine-grained org PAT: self-hosted-runners RW)}"
 NAME="${RUNNER_NAME:-gha-nas-linux-$(hostname)}"
-LABELS="${RUNNER_LABELS:-self-hosted,linux,x64,dotnet10,nas,gpu}"
+LABELS="${RUNNER_LABELS:-self-hosted,linux,x64,dotnet10,nas,gpu,android}"
 API="https://api.github.com/orgs/${GITHUB_OWNER}/actions/runners"
 GH=(-H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28")
 

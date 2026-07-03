@@ -7,7 +7,15 @@ FROM ${CUDA_BASE}
 
 ARG RUNNER_VERSION=2.335.1
 ARG DOTNET_CHANNEL=10.0
+# Android (for .NET MAUI/Android + Gradle builds). Set INSTALL_ANDROID=0 to skip.
+ARG INSTALL_ANDROID=1
+ARG JDK_PACKAGE=openjdk-17-jdk
+ARG ANDROID_API=35
+ARG ANDROID_BUILD_TOOLS=35.0.0
+ARG ANDROID_CMDLINE_TOOLS=11076708
 ENV DEBIAN_FRONTEND=noninteractive
+ENV ANDROID_SDK_ROOT=/opt/android-sdk ANDROID_HOME=/opt/android-sdk
+ENV PATH="/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:${PATH}"
 
 # CI toolchain (mirrors the Proxmox linux image): build tooling + Native AOT prereqs.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -24,6 +32,20 @@ RUN curl -fsSL https://packages.microsoft.com/config/ubuntu/24.04/packages-micro
  && apt-get install -y nodejs \
  && rm -rf /var/lib/apt/lists/*
 
+# Android: JDK 17 + Android SDK (cmdline-tools, platform, build-tools) + the .NET android
+# workload (for MAUI/Android + Gradle). ~2-3 GB; set INSTALL_ANDROID=0 to skip.
+RUN if [ "$INSTALL_ANDROID" = "1" ]; then set -eux; \
+      apt-get update && apt-get install -y --no-install-recommends "$JDK_PACKAGE" && rm -rf /var/lib/apt/lists/*; \
+      mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"; \
+      curl -fsSL -o /tmp/cmt.zip "https://dl.google.com/android/repository/commandlinetools-linux-${ANDROID_CMDLINE_TOOLS}_latest.zip"; \
+      unzip -q /tmp/cmt.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"; \
+      mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"; \
+      rm -f /tmp/cmt.zip; \
+      yes | sdkmanager --licenses >/dev/null; \
+      sdkmanager "platform-tools" "platforms;android-${ANDROID_API}" "build-tools;${ANDROID_BUILD_TOOLS}"; \
+      dotnet workload install android --skip-manifest-update; \
+    fi
+
 # Non-root runner user; video/render groups for /dev/dri access (nvidia /dev/nvidia* is
 # handled by the runtime). Create the groups first — the base image may lack 'render'.
 RUN useradd -m -s /bin/bash runner \
@@ -36,7 +58,7 @@ RUN mkdir -p /opt/actions-runner && cd /opt/actions-runner \
  && tar xzf runner.tar.gz && rm -f runner.tar.gz \
  && ./bin/installdependencies.sh \
  && mkdir -p /opt/actions-runner/_work \
- && chown -R runner:runner /opt/actions-runner
+ && chown -R runner:runner /opt/actions-runner && { chown -R runner:runner /opt/android-sdk 2>/dev/null || true; }
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
