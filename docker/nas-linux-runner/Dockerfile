@@ -24,8 +24,11 @@ RUN curl -fsSL https://packages.microsoft.com/config/ubuntu/24.04/packages-micro
  && apt-get install -y nodejs \
  && rm -rf /var/lib/apt/lists/*
 
-# Non-root runner user; video/render groups so it can reach the shared GPU.
-RUN useradd -m -s /bin/bash runner && usermod -aG video,render runner
+# Non-root runner user; video/render groups for /dev/dri access (nvidia /dev/nvidia* is
+# handled by the runtime). Create the groups first — the base image may lack 'render'.
+RUN useradd -m -s /bin/bash runner \
+ && groupadd -f video && groupadd -f render \
+ && usermod -aG video,render runner
 
 # Actions runner package (unregistered).
 RUN mkdir -p /opt/actions-runner && cd /opt/actions-runner \
