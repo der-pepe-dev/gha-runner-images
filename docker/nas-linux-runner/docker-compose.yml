@@ -2,15 +2,21 @@ services:
   gha-nas-linux:
     build: .
     image: gha-nas-linux-runner:latest
-    restart: unless-stopped
+    # Single-shot entrypoint: runs one job then exits, so restart:always gives every job a
+    # fresh container. No separate orchestrator — the container self-mints its JIT config.
+    restart: always
     # RUNNER_NAME is intentionally unset so `--scale` gives each replica a unique
     # hostname-based name. Set it only when running a single fixed-name runner.
     environment:
       GITHUB_OWNER: der-pepe-dev
       RUNNER_LABELS: "self-hosted,linux,x64,dotnet10,nas,gpu"
       # RUNNER_NAME: gha-nas-linux01
-    env_file:
-      - runner.secret.env          # GITHUB_TOKEN=... (gitignored)
+      # Set GITHUB_TOKEN as an app Environment Variable in the TrueNAS app config
+      # (fine-grained org PAT: Self-hosted runners = RW). Passed through here from the app
+      # env; for plain `docker compose` CLI use, drop this line and use env_file below.
+      GITHUB_TOKEN: ${GITHUB_TOKEN:?set GITHUB_TOKEN in the TrueNAS app config}
+    # env_file:                      # CLI fallback only (TrueNAS uses the app env above)
+    #   - runner.secret.env
     # Shared GPU via the nvidia runtime (same as your other TrueNAS apps). On TrueNAS you
     # can instead allocate the GPU in the app UI; keep whichever your install honors.
     deploy:

@@ -12,10 +12,17 @@ app model is the right one.
 
 ## Model
 
-The container runs a JIT loop (`entrypoint.sh`): mint a just-in-time runner config → run
-**one** job → repeat with a fresh registration. The container filesystem is the ephemeral
-boundary; the runner also wipes `_work` per job. The PAT lives only in the app's secret env
-and is never exposed to a workflow (JIT config only).
+**No orchestrator.** The container is self-contained: `entrypoint.sh` mints a just-in-time
+runner config, runs **one** job, and exits. With `restart: always`, Docker starts a fresh
+container for the next job — so each job gets a pristine filesystem (cleaner than an
+in-container loop). Unlike the Proxmox fleet, no snapshot-rollback or orchestrator is needed
+— the container *is* the ephemeral boundary.
+
+**PAT note.** The container self-mints, so the fine-grained org PAT lives in the app's secret
+env — a job in that container could read it. Acceptable for **trusted private-repo** jobs
+(the norm here). It is only a JIT config on the wire, never passed to the workflow. If you
+ever need the PAT fully off the runner, front it with a small minter sidecar that hands the
+container only the JIT config.
 
 Baked toolchain (mirrors the Proxmox Linux image): .NET 10 SDK, PowerShell 7, Node LTS,
 build-essential + clang/zlib (Native AOT), cmake, ninja, mingw-w64, sqlite3, ffmpeg, python3
@@ -23,12 +30,15 @@ build-essential + clang/zlib (Native AOT), cmake, ninja, mingw-w64, sqlite3, ffm
 
 ## Deploy (TrueNAS 25.10 custom app / docker compose)
 
-1. `cp runner.secret.env.example runner.secret.env` and set `GITHUB_TOKEN` (fine-grained
-   org PAT: Self-hosted runners = Read+Write).
-2. Build + start (Apps → Custom App → install via compose, or on the shell):
+1. In the TrueNAS app config, set **`GITHUB_TOKEN`** as an app **Environment Variable**
+   (Apps → Custom App → Environment Variables) — a fine-grained org PAT with Self-hosted
+   runners = Read+Write. No file needed; the app injects it into the container.
+   (For a plain `docker compose` CLI deploy instead, `cp runner.secret.env.example
+   runner.secret.env`, set the token there, and re-enable the `env_file:` line in the compose.)
+2. Build + start (Apps → Custom App → install via compose, or on the shell with the token
+   exported):
    ```bash
-   docker compose build
-   docker compose up -d
+   GITHUB_TOKEN=github_pat_xxx docker compose up -d --build
    ```
 3. Ensure the app has the **GPU allocated** (TrueNAS app GPU setting, or the compose
    `deploy.resources` block — whichever your install honors). `nvidia-smi -L` runs at
