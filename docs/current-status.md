@@ -27,6 +27,14 @@ the build-up. The `dotnet_sdk` / `github_runner` roles and the persistent-runner
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-03: **VM hostname now = runner name.** Orchestrator injects RUNNER_NAME; linux
+  bootstrap runs `hostnamectl set-hostname` per boot (immediate, durable — baked in the
+  repo bootstrap, survives future template rebuilds). Windows renamed per-slot in the clean
+  snapshot via agent-exec `Rename-Computer -Restart` (reboot required). Verified: linux
+  311/312/313 -> gha-linux-eph0{1,2,3}; windows 321/323 -> GHA-WIN-EPH0{1,3} (NetBIOS
+  uppercase). CAVEAT: the Windows rename lives only in each slot's clean snapshot — a future
+  Windows re-seed must repeat the Rename-Computer + reboot step before snapshotting (linux
+  is automatic via the bootstrap).
 - 2026-07-03: **Linux runners went offline — bad vmstate snapshots; recovered.** All 3 linux
   slots' `clean` snapshots had captured a *running, registered* runner (not the clean-waiting
   state) because the trigger socket was active during the trigger-curl resnap -> a poke
