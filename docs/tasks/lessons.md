@@ -160,3 +160,12 @@ and unreadable" (0x80070570). Use the stable VS 2022 URL aka.ms/vs/17/release/vs
 (verified ~4.4 MB PE), force TLS1.2, and size-check (> 1 MB) + Unblock-File before running.
 For .NET Native AOT / native C++ on Windows the SDK is NOT enough — bake VS Build Tools with
 the VCTools workload + VC.Tools.x86.x64 + a Windows SDK.
+
+### 2026-07-03: Use the runner-reseed skill (don't hand-roll resnaps)
+
+The safe re-seed procedure is now codified in `.claude/skills/runner-reseed/` — it pauses
+the node's timer AND trigger socket, clones fresh from the template (clean-waiting by
+construction), renames Windows, and snapshots with RAM state, always resuming on exit. It
+resolves the orchestrator LXC IP from its VMID (DHCP-proof). Prefer it over manual
+patch+resnap, which caused the bad-snapshot outages above. Usage:
+`runner-reseed.sh <node> <vmid> <name> <template_vmid> <linux|windows>`.

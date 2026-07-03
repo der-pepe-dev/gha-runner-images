@@ -52,3 +52,4 @@ orchestrator/node.local.env
 
 # Per-machine environment snapshot — local only.
 docs/environment.md
+.claude/skills/*/reseed.local.env
