@@ -27,6 +27,15 @@ the build-up. The `dotnet_sdk` / `github_runner` roles and the persistent-runner
 
 <!-- Append dated notes here, newest first: -->
 <!-- - YYYY-MM-DD: ... -->
+- 2026-07-03: **Windows cmake+ninja baked + verified; NAS runner + env-quote fixes.** Windows
+  template rebuilt to add standalone CMake 3.30.5 + Ninja 1.12.1 on PATH (VS Build Tools
+  bundles CMake but not on PATH). Re-seeded win slots via /runner-reseed; verified on a real
+  job (pwsh 7.4.6, cmake 3.30.5, ninja 1.12.1). NAS Docker runner: unique per-run name (a
+  container killed mid-job leaves an offline+busy registration GitHub won't delete (422) ->
+  409 on a reused fixed name). Linux orchestrator: single-quote the injected env values —
+  an unquoted JIT blob could word-split when sourced ("OR: command not found" -> waiter dies
+  -> runner stuck offline running); recovered by force-recycle. Fleet 5/5 (eph00 = the NAS
+  container, deployed separately on TrueNAS).
 - 2026-07-03: **NAS beefy Linux GPU runner authored (TrueNAS Docker app).** docker/nas-linux-runner/:
   CUDA-devel image + full CI toolchain + actions runner + a JIT loop, deployed as a TrueNAS
   Scale 25.10 (Goldeye) custom app so it SHARES the GPU with other apps (a VM needs exclusive
