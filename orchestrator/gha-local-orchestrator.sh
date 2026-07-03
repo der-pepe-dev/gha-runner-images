@@ -195,9 +195,11 @@ reset_runner_slot() {
 \$env:RUNNER_NAME='${name}'"
   else
     env_path='/etc/gha-runner/env'
-    env_content="RUNNER_JITCONFIG=${jitconfig}
-ORCH_TRIGGER_URL=${ORCH_TRIGGER_URL}
-RUNNER_NAME=${name}"
+    # Single-quote values so `source /etc/gha-runner/env` can't word-split or run a stray
+    # token if the JIT blob ever contains a shell-special char (base64 has no single quote).
+    env_content="RUNNER_JITCONFIG='${jitconfig}'
+ORCH_TRIGGER_URL='${ORCH_TRIGGER_URL}'
+RUNNER_NAME='${name}'"
   fi
   pve_agent_write_file "$vmid" "$env_path" "$env_content" \
     || { echo "ERR ${name}: jitconfig injection failed" >&2; return 1; }
