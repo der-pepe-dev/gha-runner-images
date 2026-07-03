@@ -91,6 +91,6 @@ Do not over-route normal jobs to the NAS. The default labels should keep normal 
 - **Linux beefy (GPU)** — `docker/nas-linux-runner/`: a TrueNAS Scale 25.10 (Goldeye)
   Docker app. Runs as a container so it **shares the GPU** with your other apps (a VM
   would need exclusive passthrough). CUDA-devel base + the full CI toolchain + a JIT loop
-  (mint config → one job → repeat). Labels `nas,beefy,gpu`. See its README to deploy.
-- **Windows beefy** — deferred; would be an Incus VM (TrueNAS 25.10 uses Incus for VMs),
+  (mint config → one job → repeat). Labels `nas,gpu`. See its README to deploy.
+- **Windows on the NAS** — not planned (skipped). If ever needed it would be an Incus VM (no GPU).
   without GPU (Windows can't share it). Port of the Proxmox windows image + JIT loop.

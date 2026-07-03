@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# JIT loop for the NAS beefy Linux runner (TrueNAS Docker app).
+# JIT loop for the NAS Linux GPU runner (TrueNAS Docker app).
 # Mints a just-in-time runner config, runs ONE job, then loops with a fresh registration.
 # The container filesystem is the ephemeral boundary (the runner also wipes _work per job).
 # The PAT stays in the container's secret env — it never reaches a workflow (JIT only).
@@ -8,7 +8,7 @@ set -uo pipefail
 : "${GITHUB_OWNER:?set GITHUB_OWNER}"
 : "${GITHUB_TOKEN:?set GITHUB_TOKEN (fine-grained org PAT: self-hosted-runners RW)}"
 NAME="${RUNNER_NAME:-gha-nas-linux-$(hostname)}"
-LABELS="${RUNNER_LABELS:-self-hosted,linux,x64,dotnet10,nas,beefy,gpu}"
+LABELS="${RUNNER_LABELS:-self-hosted,linux,x64,dotnet10,nas,gpu}"
 API="https://api.github.com/orgs/${GITHUB_OWNER}/actions/runners"
 GH=(-H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28")
 

@@ -1,14 +1,14 @@
-# NAS beefy Linux runner (TrueNAS Docker app)
+# NAS Linux GPU runner (TrueNAS Docker app)
 
 A GPU-capable, high-capacity **ephemeral** Linux runner for heavy/less-frequent jobs, run
 as a TrueNAS Scale (25.10 Goldeye) Docker app so it **shares the GPU** like your other apps
-(no exclusive VM passthrough). Opt-in via labels `nas,beefy,gpu`.
+(no exclusive VM passthrough). Opt-in via labels `nas,gpu`.
 
 ## Why Docker (not a VM) here
 
 The GPU is used by other TrueNAS apps. A VM would need exclusive PCIe passthrough (can't
 share). A Docker container shares the GPU via the nvidia runtime — so for GPU + Linux, the
-app model is the right one. (Windows-beefy would still need an Incus VM, without GPU.)
+app model is the right one.
 
 ## Model
 
@@ -33,11 +33,11 @@ build-essential + clang/zlib (Native AOT), cmake, ninja, mingw-w64, sqlite3, ffm
 3. Ensure the app has the **GPU allocated** (TrueNAS app GPU setting, or the compose
    `deploy.resources` block — whichever your install honors). `nvidia-smi -L` runs at
    startup and logs the visible GPU.
-4. The runner registers to the org with `nas,beefy,gpu` and picks up matching jobs.
+4. The runner registers to the org with `nas,gpu` and picks up matching jobs.
 
 Target it from a workflow:
 ```yaml
-runs-on: [self-hosted, linux, x64, dotnet10, nas, beefy, gpu]
+runs-on: [self-hosted, linux, x64, dotnet10, nas, gpu]
 ```
 
 ## Scale
@@ -50,6 +50,6 @@ For a single fixed-name runner, set `RUNNER_NAME` in the compose env.
 
 ## Notes
 
-- CPU/RAM/disk "beefy" comes from the host — cap per-container if needed via compose limits.
+- High CPU/RAM/disk comes from the host — cap per-container if needed via compose limits.
 - No-GPU variant: set build arg `CUDA_BASE=ubuntu:24.04` (drops CUDA, smaller image).
 - This is separate from the Proxmox ephemeral fleet — a capacity add-on, opt-in by label.

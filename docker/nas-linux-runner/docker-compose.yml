@@ -7,7 +7,7 @@ services:
     # hostname-based name. Set it only when running a single fixed-name runner.
     environment:
       GITHUB_OWNER: der-pepe-dev
-      RUNNER_LABELS: "self-hosted,linux,x64,dotnet10,nas,beefy,gpu"
+      RUNNER_LABELS: "self-hosted,linux,x64,dotnet10,nas,gpu"
       # RUNNER_NAME: gha-nas-linux01
     env_file:
       - runner.secret.env          # GITHUB_TOKEN=... (gitignored)
