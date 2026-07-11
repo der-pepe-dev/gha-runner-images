@@ -96,6 +96,11 @@ variable "ninja_version" {
   default     = "1.12.1"
   description = "Standalone Ninja version to install on PATH."
 }
+variable "install_codeql_langs" {
+  type        = bool
+  default     = true
+  description = "Bake the remaining CodeQL language toolchains: Node.js, Python, JDK (JAVA_HOME), Go, Ruby, Rust. Big (+GBs, +time)."
+}
 
 variable "cpu_type" {
   type        = string
@@ -257,6 +262,7 @@ build {
       "VS_BUILDTOOLS_URL=${var.vs_buildtools_url}",
       "CMAKE_VERSION=${var.cmake_version}",
       "NINJA_VERSION=${var.ninja_version}",
+      "INSTALL_CODEQL_LANGS=${var.install_codeql_langs}",
     ]
     scripts = ["scripts/install-runner.ps1"]
   }

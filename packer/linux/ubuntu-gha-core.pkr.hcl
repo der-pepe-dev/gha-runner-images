@@ -50,8 +50,9 @@ variable "runner_version" {
 # CI toolchain baked into the image (ephemeral runners can't install per-job). Derived
 # from docs/consumers.md; extend here + record the consumer row in the same change.
 variable "runner_apt_packages" {
-  # clang + zlib1g-dev are the Native AOT Linux prereqs.
-  default     = "build-essential clang zlib1g-dev cmake ninja-build mingw-w64 binutils gdb git curl wget unzip zip jq ca-certificates pkg-config sqlite3 ffmpeg python3 python3-pip python3-venv"
+  # clang + zlib1g-dev are the Native AOT Linux prereqs. openjdk/golang/ruby are for CodeQL
+  # (Java/Kotlin, Go, Ruby); C#/C++/JS/Python toolchains are covered by dotnet/build-essential/node/python3.
+  default     = "build-essential clang zlib1g-dev cmake ninja-build mingw-w64 binutils gdb git curl wget unzip zip jq ca-certificates pkg-config sqlite3 ffmpeg python3 python3-pip python3-venv openjdk-17-jdk golang-go ruby-full"
   description = "Space-separated apt packages installed into the runner image."
 }
 variable "dotnet_workloads" {
@@ -167,7 +168,10 @@ build {
       "${var.install_nodejs ? "curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs" : "true"}",
       # .NET workloads (e.g. android, wasm-tools). Native AOT needs no workload (uses clang/zlib above).
       "${var.dotnet_workloads != "" ? "sudo dotnet workload install ${var.dotnet_workloads}" : "true"}",
-      "dotnet --version && cmake --version | head -1 && ${var.install_nodejs ? "node --version" : "true"}",
+      # Rust (rustup) for CodeQL Rust — system install under /opt/rust, symlinked onto PATH.
+      "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust sh -s -- -y --no-modify-path --profile minimal",
+      "sudo ln -sf /opt/rust/bin/cargo /opt/rust/bin/rustc /opt/rust/bin/rustup /usr/local/bin/",
+      "dotnet --version && cmake --version | head -1 && java -version && go version && ruby --version && cargo --version && ${var.install_nodejs ? "node --version" : "true"}",
     ]
   }
 
@@ -188,6 +192,8 @@ build {
       "curl -fsSL -o /tmp/runner.tar.gz https://github.com/actions/runner/releases/download/v${var.runner_version}/actions-runner-linux-x64-${var.runner_version}.tar.gz",
       "sudo tar -xzf /tmp/runner.tar.gz -C /opt/actions-runner",
       "sudo /opt/actions-runner/bin/installdependencies.sh",
+      # JAVA_HOME for CodeQL Java/Kotlin, baked into the runner's .env (loaded for every job).
+      "echo \"JAVA_HOME=$(dirname $(dirname $(readlink -f $(command -v javac))))\" | sudo tee /opt/actions-runner/.env >/dev/null",
       "sudo install -m 0755 /tmp/linux-runner-once.sh /opt/gha-runner/linux-runner-once.sh",
       "sudo chown -R gha-runner:gha-runner /opt/actions-runner /opt/actions-work",
       "sudo install -m 0644 /tmp/gha-runner-waiter.service /etc/systemd/system/gha-runner-waiter.service",

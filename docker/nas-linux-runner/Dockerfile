@@ -17,12 +17,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV ANDROID_SDK_ROOT=/opt/android-sdk ANDROID_HOME=/opt/android-sdk
 ENV PATH="/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools:${PATH}"
 
-# CI toolchain (mirrors the Proxmox linux image): build tooling + Native AOT prereqs.
+# CI toolchain (mirrors the Proxmox linux image): build tooling + Native AOT prereqs +
+# CodeQL language toolchains (golang-go, ruby-full; JDK comes with the Android block below).
 RUN apt-get update && apt-get install -y --no-install-recommends \
       build-essential clang zlib1g-dev cmake ninja-build mingw-w64 binutils gdb \
       git curl wget unzip zip jq ca-certificates pkg-config sqlite3 ffmpeg \
       python3 python3-pip python3-venv sudo gnupg apt-transport-https \
+      golang-go ruby-full openjdk-17-jdk \
  && rm -rf /var/lib/apt/lists/*
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
 # .NET 10 SDK + PowerShell 7 (Microsoft feed) + Node.js LTS (NodeSource).
 RUN curl -fsSL https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -o /tmp/ms.deb \
@@ -31,6 +34,11 @@ RUN curl -fsSL https://packages.microsoft.com/config/ubuntu/24.04/packages-micro
  && curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
  && apt-get install -y nodejs \
  && rm -rf /var/lib/apt/lists/*
+
+# Rust (rustup) for CodeQL Rust — system install under /opt/rust, on PATH for all users.
+ENV RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust PATH="/opt/rust/bin:${PATH}"
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal \
+ && chmod -R a+rX /opt/rust
 
 # Android: JDK 17 + Android SDK (cmdline-tools, platform, build-tools) + the .NET android
 # workload (for MAUI/Android + Gradle). ~2-3 GB; set INSTALL_ANDROID=0 to skip.

@@ -74,9 +74,44 @@ if ($env:NINJA_VERSION) {
     Expand-Archive 'C:\Windows\Temp\ninja.zip' -DestinationPath 'C:\Program Files\Ninja' -Force
 }
 
+if ($env:INSTALL_CODEQL_LANGS -eq 'true') {
+    $ProgressPreference = 'SilentlyContinue'
+    Write-Host 'Installing Node.js...'
+    Invoke-WebRequest 'https://nodejs.org/dist/v20.17.0/node-v20.17.0-x64.msi' -OutFile 'C:\Windows\Temp\node.msi' -UseBasicParsing
+    Start-Process msiexec -ArgumentList '/i', 'C:\Windows\Temp\node.msi', '/quiet', '/norestart' -Wait
+
+    Write-Host 'Installing Python 3...'
+    Invoke-WebRequest 'https://www.python.org/ftp/python/3.12.7/python-3.12.7-amd64.exe' -OutFile 'C:\Windows\Temp\python.exe' -UseBasicParsing
+    Start-Process 'C:\Windows\Temp\python.exe' -ArgumentList '/quiet', 'InstallAllUsers=1', 'PrependPath=1', 'Include_launcher=1' -Wait
+
+    Write-Host 'Installing JDK 17 (Temurin)...'
+    Invoke-WebRequest 'https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.12%2B7/OpenJDK17U-jdk_x64_windows_hotspot_17.0.12_7.zip' -OutFile 'C:\Windows\Temp\jdk.zip' -UseBasicParsing
+    Expand-Archive 'C:\Windows\Temp\jdk.zip' -DestinationPath 'C:\Windows\Temp\jdkx' -Force
+    if (Test-Path 'C:\Java\jdk17') { Remove-Item 'C:\Java\jdk17' -Recurse -Force }
+    New-Item -ItemType Directory -Force 'C:\Java' | Out-Null
+    Move-Item (Get-ChildItem 'C:\Windows\Temp\jdkx' -Directory | Select-Object -First 1).FullName 'C:\Java\jdk17'
+    [Environment]::SetEnvironmentVariable('JAVA_HOME', 'C:\Java\jdk17', 'Machine')
+
+    Write-Host 'Installing Go...'
+    Invoke-WebRequest 'https://go.dev/dl/go1.23.2.windows-amd64.zip' -OutFile 'C:\Windows\Temp\go.zip' -UseBasicParsing
+    if (Test-Path 'C:\go') { Remove-Item 'C:\go' -Recurse -Force }
+    Expand-Archive 'C:\Windows\Temp\go.zip' -DestinationPath 'C:\' -Force   # extracts to C:\go
+
+    Write-Host 'Installing Ruby...'
+    Invoke-WebRequest 'https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-3.3.5-1/rubyinstaller-3.3.5-1-x64.exe' -OutFile 'C:\Windows\Temp\ruby.exe' -UseBasicParsing
+    Start-Process 'C:\Windows\Temp\ruby.exe' -ArgumentList '/verysilent', '/norestart', '/dir=C:\Ruby33' -Wait
+
+    Write-Host 'Installing Rust (rustup)...'
+    Invoke-WebRequest 'https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe' -OutFile 'C:\Windows\Temp\rustup-init.exe' -UseBasicParsing
+    $env:RUSTUP_HOME = 'C:\Rust'; $env:CARGO_HOME = 'C:\Rust'
+    Start-Process 'C:\Windows\Temp\rustup-init.exe' -ArgumentList '-y', '--default-toolchain', 'stable', '--profile', 'minimal', '--no-modify-path' -Wait
+    [Environment]::SetEnvironmentVariable('RUSTUP_HOME', 'C:\Rust', 'Machine')
+    [Environment]::SetEnvironmentVariable('CARGO_HOME', 'C:\Rust', 'Machine')
+}
+
 Write-Host 'Updating machine PATH + DOTNET_ROOT...'
 $p = [Environment]::GetEnvironmentVariable('Path', 'Machine')
-$p = ($p.TrimEnd(';') + ';C:\Program Files\dotnet;C:\Program Files\Git\cmd;C:\Program Files\CMake\bin;C:\Program Files\Ninja')
+$p = ($p.TrimEnd(';') + ';C:\Program Files\dotnet;C:\Program Files\Git\cmd;C:\Program Files\CMake\bin;C:\Program Files\Ninja;C:\Java\jdk17\bin;C:\go\bin;C:\Ruby33\bin;C:\Rust\bin')
 [Environment]::SetEnvironmentVariable('Path', $p, 'Machine')
 [Environment]::SetEnvironmentVariable('DOTNET_ROOT', 'C:\Program Files\dotnet', 'Machine')
 
