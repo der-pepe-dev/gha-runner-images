@@ -169,9 +169,11 @@ build {
       # .NET workloads (e.g. android, wasm-tools). Native AOT needs no workload (uses clang/zlib above).
       "${var.dotnet_workloads != "" ? "sudo dotnet workload install ${var.dotnet_workloads}" : "true"}",
       # Rust (rustup) for CodeQL Rust — system install under /opt/rust, symlinked onto PATH.
-      "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust sh -s -- -y --no-modify-path --profile minimal",
+      # The proxies need RUSTUP_HOME to find the toolchain, so it's exported for jobs via .env.
+      "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable",
       "sudo ln -sf /opt/rust/bin/cargo /opt/rust/bin/rustc /opt/rust/bin/rustup /usr/local/bin/",
-      "dotnet --version && cmake --version | head -1 && java -version && go version && ruby --version && cargo --version && ${var.install_nodejs ? "node --version" : "true"}",
+      "sudo chmod -R a+rX /opt/rust",
+      "dotnet --version && cmake --version | head -1 && java -version && go version && ruby --version && RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust cargo --version && ${var.install_nodejs ? "node --version" : "true"}",
     ]
   }
 
@@ -192,8 +194,9 @@ build {
       "curl -fsSL -o /tmp/runner.tar.gz https://github.com/actions/runner/releases/download/v${var.runner_version}/actions-runner-linux-x64-${var.runner_version}.tar.gz",
       "sudo tar -xzf /tmp/runner.tar.gz -C /opt/actions-runner",
       "sudo /opt/actions-runner/bin/installdependencies.sh",
-      # JAVA_HOME for CodeQL Java/Kotlin, baked into the runner's .env (loaded for every job).
-      "echo \"JAVA_HOME=$(dirname $(dirname $(readlink -f $(command -v javac))))\" | sudo tee /opt/actions-runner/.env >/dev/null",
+      # JAVA_HOME (CodeQL Java) + RUSTUP/CARGO_HOME (CodeQL Rust) baked into the runner's .env,
+      # which the runner loads for every job.
+      "printf 'JAVA_HOME=%s\\nRUSTUP_HOME=/opt/rust\\nCARGO_HOME=/opt/rust\\n' \"$(dirname $(dirname $(readlink -f $(command -v javac))))\" | sudo tee /opt/actions-runner/.env >/dev/null",
       "sudo install -m 0755 /tmp/linux-runner-once.sh /opt/gha-runner/linux-runner-once.sh",
       "sudo chown -R gha-runner:gha-runner /opt/actions-runner /opt/actions-work",
       "sudo install -m 0644 /tmp/gha-runner-waiter.service /etc/systemd/system/gha-runner-waiter.service",

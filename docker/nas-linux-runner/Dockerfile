@@ -37,7 +37,7 @@ RUN curl -fsSL https://packages.microsoft.com/config/ubuntu/24.04/packages-micro
 
 # Rust (rustup) for CodeQL Rust — system install under /opt/rust, on PATH for all users.
 ENV RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust PATH="/opt/rust/bin:${PATH}"
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal \
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable \
  && chmod -R a+rX /opt/rust
 
 # Android: JDK 17 + Android SDK (cmdline-tools, platform, build-tools) + the .NET android
