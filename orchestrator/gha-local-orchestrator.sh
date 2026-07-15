@@ -208,6 +208,25 @@ RUNNER_NAME='${name}'"
   unset jitconfig env_content
 }
 
+# --- Is a runner with this name currently online in GitHub? -------------------
+runner_is_online() {
+  local name="$1" base
+  if [ "$REGISTRATION_SCOPE" = "org" ]; then
+    base="https://api.github.com/orgs/${GITHUB_OWNER}/actions/runners"
+  else
+    base="https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runners"
+  fi
+  curl -fsS -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" \
+    "${base}?per_page=100" 2>/dev/null \
+    | jq -e --arg n "$name" 'any(.runners[]; .name==$n and .status=="online")' >/dev/null 2>&1
+}
+
+# --- Proxmox: VM uptime in seconds (qemu runtime since last start/rollback) ----
+get_vm_uptime() {
+  curl -fsS -k -H "$PVE_AUTH" "${PROXMOX_URL}/nodes/${PROXMOX_NODE}/qemu/$1/status/current" 2>/dev/null \
+    | jq -r '.data.uptime // 0'
+}
+
 # --- Reconcile loop over this node's slots ------------------------------------
 for ((i = 1; i <= SLOT_COUNT; i++)); do
   eval "slot_name=\${SLOT_${i}_NAME:-}"
@@ -220,6 +239,15 @@ for ((i = 1; i <= SLOT_COUNT; i++)); do
     echo "${slot_name}: ${state}"
     if [ "$state" = "stopped" ]; then
       reset_runner_slot "$i"
+    elif [ "$state" = "running" ]; then
+      # Stuck detection: a runner connects within ~1-2 min of a reset, so a slot running
+      # longer than the grace with NO online runner means the waiter/runner died without
+      # shutting down (the orchestrator would otherwise skip a running VM forever). Reset it.
+      up="$(get_vm_uptime "$slot_vmid")"
+      if [ "${up:-0}" -gt "${STUCK_AFTER_SEC:-300}" ] && ! runner_is_online "$slot_name"; then
+        echo "${slot_name}: running ${up}s with no online runner — resetting (stuck)"
+        reset_runner_slot "$i"
+      fi
     fi
   else
     echo "WARN ${slot_name}: status check failed (missing VM? clone from template here)" >&2
