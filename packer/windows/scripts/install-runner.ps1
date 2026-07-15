@@ -99,7 +99,9 @@ if ($env:INSTALL_CODEQL_LANGS -eq 'true') {
 
     Write-Host 'Installing Ruby...'
     Invoke-WebRequest 'https://github.com/oneclick/rubyinstaller2/releases/download/RubyInstaller-3.3.5-1/rubyinstaller-3.3.5-1-x64.exe' -OutFile 'C:\Windows\Temp\ruby.exe' -UseBasicParsing
-    Start-Process 'C:\Windows\Temp\ruby.exe' -ArgumentList '/verysilent', '/norestart', '/dir=C:\Ruby33' -Wait
+    # /suppressmsgboxes + /tasks="" so the Inno installer never waits on a dialog or runs the
+    # ridk/MSYS2 devkit step (CodeQL only needs the interpreter); it hung without these.
+    Start-Process 'C:\Windows\Temp\ruby.exe' -ArgumentList '/verysilent', '/suppressmsgboxes', '/norestart', '/tasks=', '/dir=C:\Ruby33' -Wait
 
     Write-Host 'Installing Rust (rustup)...'
     Invoke-WebRequest 'https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe' -OutFile 'C:\Windows\Temp\rustup-init.exe' -UseBasicParsing
