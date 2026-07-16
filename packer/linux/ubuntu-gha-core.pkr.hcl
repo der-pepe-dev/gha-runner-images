@@ -64,7 +64,7 @@ variable "trivy_version" {
   description = "Trivy (vuln/IaC/secret scanner) version to bake on PATH."
 }
 variable "sonar_scanner_version" {
-  default     = "6.2.1.4610"
+  default     = "8.1.0.6389"
   description = "SonarScanner CLI version (generic scanner; dotnet-sonarscanner is a .NET tool)."
 }
 variable "dotnet_channel" {

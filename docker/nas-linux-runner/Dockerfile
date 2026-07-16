@@ -42,7 +42,7 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no
 
 # Code-quality scanners: Trivy + SonarScanner (dotnet tool + generic CLI), on PATH.
 ARG TRIVY_VERSION=0.72.0
-ARG SONAR_SCANNER_VERSION=6.2.1.4610
+ARG SONAR_SCANNER_VERSION=8.1.0.6389
 ENV PATH="/opt/dotnet-tools:/opt/sonar-scanner/bin:${PATH}"
 RUN curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" | tar xz -C /usr/local/bin trivy \
  && dotnet tool install --tool-path /opt/dotnet-tools dotnet-sonarscanner \
