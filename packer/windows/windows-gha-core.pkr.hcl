@@ -107,7 +107,11 @@ variable "trivy_version" {
 }
 variable "sonar_scanner_version" {
   default     = "8.1.0.6389"
-  description = "SonarScanner CLI version (generic; dotnet-sonarscanner is a .NET tool)."
+  description = "Generic SonarScanner CLI version (for non-.NET analysis)."
+}
+variable "dotnet_sonarscanner_version" {
+  default     = "11.2.1"
+  description = "SonarScanner for .NET (dotnet-sonarscanner) version. Pinned — never unbounded latest."
 }
 
 variable "cpu_type" {
@@ -273,6 +277,7 @@ build {
       "INSTALL_CODEQL_LANGS=${var.install_codeql_langs}",
       "TRIVY_VERSION=${var.trivy_version}",
       "SONAR_SCANNER_VERSION=${var.sonar_scanner_version}",
+      "DOTNET_SONARSCANNER_VERSION=${var.dotnet_sonarscanner_version}",
     ]
     scripts = ["scripts/install-runner.ps1"]
   }

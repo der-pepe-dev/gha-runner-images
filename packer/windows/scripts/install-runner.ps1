@@ -118,8 +118,10 @@ New-Item -ItemType Directory -Force 'C:\Tools\trivy' | Out-Null
 Invoke-WebRequest "https://github.com/aquasecurity/trivy/releases/download/v$($env:TRIVY_VERSION)/trivy_$($env:TRIVY_VERSION)_windows-64bit.zip" -OutFile 'C:\Windows\Temp\trivy.zip' -UseBasicParsing
 Expand-Archive 'C:\Windows\Temp\trivy.zip' -DestinationPath 'C:\Tools\trivy' -Force
 
-Write-Host 'Installing dotnet-sonarscanner...'
-& 'C:\Program Files\dotnet\dotnet.exe' tool install --tool-path 'C:\Tools\dotnet-tools' dotnet-sonarscanner
+Write-Host "Installing dotnet-sonarscanner $env:DOTNET_SONARSCANNER_VERSION..."
+# Pinned + idempotent (uninstall-then-install upgrades a prior pin cleanly).
+& 'C:\Program Files\dotnet\dotnet.exe' tool uninstall --tool-path 'C:\Tools\dotnet-tools' dotnet-sonarscanner 2>$null
+& 'C:\Program Files\dotnet\dotnet.exe' tool install --tool-path 'C:\Tools\dotnet-tools' --version $env:DOTNET_SONARSCANNER_VERSION dotnet-sonarscanner
 
 Write-Host 'Installing SonarScanner CLI...'
 Invoke-WebRequest "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$($env:SONAR_SCANNER_VERSION)-windows-x64.zip" -OutFile 'C:\Windows\Temp\sonar.zip' -UseBasicParsing

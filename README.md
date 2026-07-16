@@ -40,14 +40,25 @@ fleet above is the primary model.
 
 | Image | Purpose |
 |---|---|
-| `ubuntu-gha-core` | Linux runner: .NET 10 SDK, PowerShell 7, Node.js LTS, build-essential + clang/zlib (Native AOT), cmake, ninja, mingw-w64, binutils, sqlite3, ffmpeg, python3, git — plus the baked runner + waiter |
-| `win-gha-core` | Windows Server Core runner: Git, PowerShell 7, .NET 10 SDK |
+| `ubuntu-gha-core` | Linux runner: .NET 10 SDK (incl. Roslyn analyzers), PowerShell 7, Node.js LTS, build-essential + clang/zlib (Native AOT), cmake, ninja, mingw-w64, binutils, sqlite3, ffmpeg, python3, git; **code-quality scanners** — Trivy + SonarScanner for .NET (`dotnet-sonarscanner`) + generic `sonar-scanner` CLI — plus the baked runner + waiter |
+| `win-gha-core` | Windows Server Core runner: Git, PowerShell 7, .NET 10 SDK, VS Build Tools; also carries Trivy + SonarScanner |
 | `win-gha-buildtools` | Optional heavier Windows runner with Visual Studio Build Tools/MSBuild |
 
 The Linux toolchain is an extensible `runner_apt_packages` var + `dotnet_channel` /
 `install_nodejs` / `dotnet_workloads` toggles; heavy add-ons (e.g. the Android SDK) belong
 in a future beefier image, not the lean core. Requirements per consuming project are
 tracked in [`docs/consumers.md`](docs/consumers.md).
+
+**Code-quality scanners** (Linux; also Windows + NAS): **Trivy** (`/usr/local/bin/trivy`,
+release artifact SHA-256-verified), **SonarScanner for .NET** (`dotnet-sonarscanner` under
+`/opt/dotnet-tools`), and the generic `sonar-scanner` CLI — all on `/usr/local/bin` for the
+runner service account. Versions are **pinned** via one Packer variable per tool
+(`trivy_version`, `dotnet_sonarscanner_version`, `sonar_scanner_version`); no unbounded
+"latest". The **SonarQube server, its `SONAR_TOKEN`/URL, and the Trivy vulnerability DB are
+NOT baked** — the consuming workflow supplies them. Roslyn analyzers ship with the .NET SDK
+(no package). Each Linux build runs `scripts/smoke-test-linux.sh` **as the runner account**,
+failing the bake if `dotnet --info`, `dotnet sonarscanner --version`, or `trivy --version` is
+missing, off-PATH, or the wrong pinned version.
 
 ## Fleet
 

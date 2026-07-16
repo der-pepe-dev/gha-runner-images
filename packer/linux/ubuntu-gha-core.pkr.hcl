@@ -61,11 +61,15 @@ variable "dotnet_workloads" {
 }
 variable "trivy_version" {
   default     = "0.72.0"
-  description = "Trivy (vuln/IaC/secret scanner) version to bake on PATH."
+  description = "Trivy (vuln/IaC/secret scanner) version to bake on PATH. Pinned; verified by checksum."
 }
 variable "sonar_scanner_version" {
   default     = "8.1.0.6389"
-  description = "SonarScanner CLI version (generic scanner; dotnet-sonarscanner is a .NET tool)."
+  description = "Generic SonarScanner CLI version (for non-.NET analysis)."
+}
+variable "dotnet_sonarscanner_version" {
+  default     = "11.2.1"
+  description = "SonarScanner for .NET (dotnet-sonarscanner global tool) version. Pinned — never install unbounded latest."
 }
 variable "dotnet_channel" {
   default     = "10.0"
@@ -181,10 +185,21 @@ build {
       "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable",
       "sudo ln -sf /opt/rust/bin/cargo /opt/rust/bin/rustc /opt/rust/bin/rustup /usr/local/bin/",
       "sudo chmod -R a+rX /opt/rust",
-      # Code-quality scanners: Trivy + SonarScanner (dotnet tool + generic CLI), on PATH.
-      "curl -fsSL https://github.com/aquasecurity/trivy/releases/download/v${var.trivy_version}/trivy_${var.trivy_version}_Linux-64bit.tar.gz | sudo tar xz -C /usr/local/bin trivy",
-      "sudo dotnet tool install --tool-path /opt/dotnet-tools dotnet-sonarscanner",
+      # Code-quality scanners: Trivy + SonarScanner (SonarScanner for .NET + generic CLI).
+      # Trivy: download the pinned release artifact + its checksums file and verify the
+      # SHA-256 before extracting (no unverified pipe-to-shell). NOTE: no vuln DB is baked —
+      # the consuming workflow downloads/caches it (it would go stale in a golden image).
+      "cd /tmp && curl -fsSLO https://github.com/aquasecurity/trivy/releases/download/v${var.trivy_version}/trivy_${var.trivy_version}_Linux-64bit.tar.gz && curl -fsSLO https://github.com/aquasecurity/trivy/releases/download/v${var.trivy_version}/trivy_${var.trivy_version}_checksums.txt",
+      "cd /tmp && grep 'trivy_${var.trivy_version}_Linux-64bit.tar.gz' trivy_${var.trivy_version}_checksums.txt | sha256sum -c -",
+      "sudo tar -xzf /tmp/trivy_${var.trivy_version}_Linux-64bit.tar.gz -C /usr/local/bin trivy && rm -f /tmp/trivy_${var.trivy_version}_*",
+      # SonarScanner for .NET (pinned, machine-wide /opt/dotnet-tools). Uninstall-then-install
+      # is idempotent + upgrades a prior pin cleanly.
+      "sudo dotnet tool uninstall --tool-path /opt/dotnet-tools dotnet-sonarscanner 2>/dev/null || true",
+      "sudo dotnet tool install --tool-path /opt/dotnet-tools --version ${var.dotnet_sonarscanner_version} dotnet-sonarscanner",
+      # Generic SonarScanner CLI (non-.NET analysis; uses the baked JDK).
       "curl -fsSL -o /tmp/sonar.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${var.sonar_scanner_version}.zip && sudo unzip -q /tmp/sonar.zip -d /opt && sudo mv /opt/sonar-scanner-${var.sonar_scanner_version} /opt/sonar-scanner && rm -f /tmp/sonar.zip",
+      # Symlink onto /usr/local/bin so `trivy`, `dotnet sonarscanner` and `sonar-scanner`
+      # resolve for the gha-runner account with no profile init.
       "sudo ln -sf /opt/dotnet-tools/dotnet-sonarscanner /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/",
       "dotnet --version && cmake --version | head -1 && java -version && go version && ruby --version && RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust cargo --version && trivy --version | head -1 && sonar-scanner --version 2>&1 | grep -i version | head -1 && ${var.install_nodejs ? "node --version" : "true"}",
     ]
@@ -214,6 +229,19 @@ build {
       "sudo chown -R gha-runner:gha-runner /opt/actions-runner /opt/actions-work",
       "sudo install -m 0644 /tmp/gha-runner-waiter.service /etc/systemd/system/gha-runner-waiter.service",
       "sudo systemctl enable gha-runner-waiter.service",
+    ]
+  }
+
+  # Image smoke test, run AS THE RUNNER ACCOUNT (gha-runner): fail the build if dotnet,
+  # dotnet-sonarscanner, or trivy is missing / off PATH / non-zero / not the pinned version.
+  # Never contacts a SonarQube server or downloads the Trivy vuln DB.
+  provisioner "file" {
+    source      = "../../scripts/smoke-test-linux.sh"
+    destination = "/tmp/smoke-test-linux.sh"
+  }
+  provisioner "shell" {
+    inline = [
+      "sudo -u gha-runner env EXPECTED_TRIVY='${var.trivy_version}' EXPECTED_SONARSCANNER='${var.dotnet_sonarscanner_version}' bash /tmp/smoke-test-linux.sh",
     ]
   }
 

@@ -41,11 +41,16 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no
  && chmod -R a+rX /opt/rust
 
 # Code-quality scanners: Trivy + SonarScanner (dotnet tool + generic CLI), on PATH.
+# All pinned. Trivy is checksum-verified; no vuln DB is baked (the workflow fetches it).
 ARG TRIVY_VERSION=0.72.0
 ARG SONAR_SCANNER_VERSION=8.1.0.6389
+ARG DOTNET_SONARSCANNER_VERSION=11.2.1
 ENV PATH="/opt/dotnet-tools:/opt/sonar-scanner/bin:${PATH}"
-RUN curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" | tar xz -C /usr/local/bin trivy \
- && dotnet tool install --tool-path /opt/dotnet-tools dotnet-sonarscanner \
+RUN curl -fsSLO "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
+ && curl -fsSLO "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_checksums.txt" \
+ && grep "trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" "trivy_${TRIVY_VERSION}_checksums.txt" | sha256sum -c - \
+ && tar -xzf "trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" -C /usr/local/bin trivy && rm -f trivy_${TRIVY_VERSION}_* \
+ && dotnet tool install --tool-path /opt/dotnet-tools --version "${DOTNET_SONARSCANNER_VERSION}" dotnet-sonarscanner \
  && curl -fsSL -o /tmp/sonar.zip "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}.zip" \
  && unzip -q /tmp/sonar.zip -d /opt && mv "/opt/sonar-scanner-${SONAR_SCANNER_VERSION}" /opt/sonar-scanner && rm -f /tmp/sonar.zip \
  && chmod -R a+rX /opt/dotnet-tools /opt/sonar-scanner

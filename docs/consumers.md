@@ -26,7 +26,7 @@ projects; they record their own need locally and a maintainer reflects it here.
 
 | Project | Runner labels | Tools needed beyond base image |
 |---|---|---|
-| DePam | `[self-hosted, linux, x64, dotnet10]`, `[self-hosted, windows, x64, dotnet10, vs-buildtools]` | mingw-w64 cross-compile toolchain, CMake, Ninja (native cores); binutils for binary inspection |
+| DePam | `[self-hosted, linux, x64, dotnet10]`, `[self-hosted, windows, x64, dotnet10, vs-buildtools]` | mingw-w64 cross-compile toolchain, CMake, Ninja (native cores); binutils for binary inspection. Security-analysis stack (already in the Linux base image): Roslyn analyzers via the .NET 10 SDK (no extra package), SonarScanner for .NET (`dotnet-sonarscanner`, pushes to an external SonarQube server) + Trivy CLI |
 | ArtifactView | `[self-hosted, windows, x64, dotnet10]` | net10.0-windows build; GDI+ / Windows desktop libs |
 | DedupSharp | `[self-hosted, linux, x64, dotnet10]` | base .NET only |
 | ReMedia | `[self-hosted, windows, x64, dotnet10]` | ffmpeg, ffprobe (WPF desktop build) |
@@ -40,6 +40,15 @@ Defined by the Packer + Ansible automation in this repo:
   clang + zlib1g-dev (Native AOT), cmake, ninja, mingw-w64, binutils, gdb, sqlite3, ffmpeg,
   zip/unzip, python3, Node.js LTS, and the `android` .NET workload. Android SDK/JDK are NOT
   baked — Android jobs provide those (setup-java / android-actions).
+- **Code-quality / security scanners** (Linux base image; also present on Windows + NAS):
+  **Trivy** at `/usr/local/bin/trivy` (release artifact, SHA-256 verified), **SonarScanner
+  for .NET** (`dotnet-sonarscanner`) under `/opt/dotnet-tools`, and the generic
+  `sonar-scanner` CLI. All symlinked onto `/usr/local/bin` so they work for the runner
+  service account. Versions are pinned via Packer vars (`trivy_version`,
+  `dotnet_sonarscanner_version`, `sonar_scanner_version`) — no unbounded "latest".
+  **Not baked**: the SonarQube server, `SONAR_TOKEN`/host URL/project key, and the Trivy
+  vulnerability DB/caches — the consuming workflow supplies those. Roslyn analyzers need no
+  package — they ship with the .NET 10 SDK.
 - **Windows runner** also bakes (packer/windows): Git, .NET 10 SDK, PowerShell 7 (pwsh),
   the runner + boot-waiter, and **Visual Studio Build Tools** (`install_buildtools`:
   MSBuild + ManagedDesktop + VCTools + VC.Tools.x86.x64 + Windows 11 SDK) — so MSBuild,
