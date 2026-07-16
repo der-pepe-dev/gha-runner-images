@@ -40,6 +40,16 @@ ENV RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust PATH="/opt/rust/bin:${PATH}"
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable \
  && chmod -R a+rX /opt/rust
 
+# Code-quality scanners: Trivy + SonarScanner (dotnet tool + generic CLI), on PATH.
+ARG TRIVY_VERSION=0.72.0
+ARG SONAR_SCANNER_VERSION=6.2.1.4610
+ENV PATH="/opt/dotnet-tools:/opt/sonar-scanner/bin:${PATH}"
+RUN curl -fsSL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" | tar xz -C /usr/local/bin trivy \
+ && dotnet tool install --tool-path /opt/dotnet-tools dotnet-sonarscanner \
+ && curl -fsSL -o /tmp/sonar.zip "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}.zip" \
+ && unzip -q /tmp/sonar.zip -d /opt && mv "/opt/sonar-scanner-${SONAR_SCANNER_VERSION}" /opt/sonar-scanner && rm -f /tmp/sonar.zip \
+ && chmod -R a+rX /opt/dotnet-tools /opt/sonar-scanner
+
 # Android: JDK 17 + Android SDK (cmdline-tools, platform, build-tools) + the .NET android
 # workload (for MAUI/Android + Gradle). ~2-3 GB; set INSTALL_ANDROID=0 to skip.
 RUN if [ "$INSTALL_ANDROID" = "1" ]; then set -eux; \

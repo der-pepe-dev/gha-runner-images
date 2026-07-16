@@ -99,7 +99,15 @@ variable "ninja_version" {
 variable "install_codeql_langs" {
   type        = bool
   default     = true
-  description = "Bake the remaining CodeQL language toolchains: Node.js, Python, JDK (JAVA_HOME), Go, Ruby, Rust. Big (+GBs, +time)."
+  description = "Bake the extra language toolchains: Node.js, Python, JDK (JAVA_HOME), Go, Ruby, Rust. Big (+GBs, +time)."
+}
+variable "trivy_version" {
+  default     = "0.72.0"
+  description = "Trivy (vuln/IaC/secret scanner) version to bake on PATH."
+}
+variable "sonar_scanner_version" {
+  default     = "6.2.1.4610"
+  description = "SonarScanner CLI version (generic; dotnet-sonarscanner is a .NET tool)."
 }
 
 variable "cpu_type" {
@@ -263,6 +271,8 @@ build {
       "CMAKE_VERSION=${var.cmake_version}",
       "NINJA_VERSION=${var.ninja_version}",
       "INSTALL_CODEQL_LANGS=${var.install_codeql_langs}",
+      "TRIVY_VERSION=${var.trivy_version}",
+      "SONAR_SCANNER_VERSION=${var.sonar_scanner_version}",
     ]
     scripts = ["scripts/install-runner.ps1"]
   }

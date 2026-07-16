@@ -59,6 +59,14 @@ variable "dotnet_workloads" {
   default     = ""
   description = "Space-separated .NET workloads to install (e.g. 'android wasm-tools'). Empty = none."
 }
+variable "trivy_version" {
+  default     = "0.72.0"
+  description = "Trivy (vuln/IaC/secret scanner) version to bake on PATH."
+}
+variable "sonar_scanner_version" {
+  default     = "6.2.1.4610"
+  description = "SonarScanner CLI version (generic scanner; dotnet-sonarscanner is a .NET tool)."
+}
 variable "dotnet_channel" {
   default     = "10.0"
   description = ".NET SDK channel to install (matches the dotnet10 runner label)."
@@ -173,7 +181,12 @@ build {
       "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sudo RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust sh -s -- -y --no-modify-path --profile minimal --default-toolchain stable",
       "sudo ln -sf /opt/rust/bin/cargo /opt/rust/bin/rustc /opt/rust/bin/rustup /usr/local/bin/",
       "sudo chmod -R a+rX /opt/rust",
-      "dotnet --version && cmake --version | head -1 && java -version && go version && ruby --version && RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust cargo --version && ${var.install_nodejs ? "node --version" : "true"}",
+      # Code-quality scanners: Trivy + SonarScanner (dotnet tool + generic CLI), on PATH.
+      "curl -fsSL https://github.com/aquasecurity/trivy/releases/download/v${var.trivy_version}/trivy_${var.trivy_version}_Linux-64bit.tar.gz | sudo tar xz -C /usr/local/bin trivy",
+      "sudo dotnet tool install --tool-path /opt/dotnet-tools dotnet-sonarscanner",
+      "curl -fsSL -o /tmp/sonar.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${var.sonar_scanner_version}.zip && sudo unzip -q /tmp/sonar.zip -d /opt && sudo mv /opt/sonar-scanner-${var.sonar_scanner_version} /opt/sonar-scanner && rm -f /tmp/sonar.zip",
+      "sudo ln -sf /opt/dotnet-tools/dotnet-sonarscanner /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/",
+      "dotnet --version && cmake --version | head -1 && java -version && go version && ruby --version && RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust cargo --version && trivy --version | head -1 && sonar-scanner --version 2>&1 | grep -i version | head -1 && ${var.install_nodejs ? "node --version" : "true"}",
     ]
   }
 

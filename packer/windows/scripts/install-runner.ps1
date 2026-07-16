@@ -111,9 +111,25 @@ if ($env:INSTALL_CODEQL_LANGS -eq 'true') {
     [Environment]::SetEnvironmentVariable('CARGO_HOME', 'C:\Rust', 'Machine')
 }
 
+# Code-quality scanners: Trivy + SonarScanner (dotnet tool + generic CLI).
+$ProgressPreference = 'SilentlyContinue'
+Write-Host 'Installing Trivy...'
+New-Item -ItemType Directory -Force 'C:\Tools\trivy' | Out-Null
+Invoke-WebRequest "https://github.com/aquasecurity/trivy/releases/download/v$($env:TRIVY_VERSION)/trivy_$($env:TRIVY_VERSION)_windows-64bit.zip" -OutFile 'C:\Windows\Temp\trivy.zip' -UseBasicParsing
+Expand-Archive 'C:\Windows\Temp\trivy.zip' -DestinationPath 'C:\Tools\trivy' -Force
+
+Write-Host 'Installing dotnet-sonarscanner...'
+& 'C:\Program Files\dotnet\dotnet.exe' tool install --tool-path 'C:\Tools\dotnet-tools' dotnet-sonarscanner
+
+Write-Host 'Installing SonarScanner CLI...'
+Invoke-WebRequest "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$($env:SONAR_SCANNER_VERSION)-windows-x64.zip" -OutFile 'C:\Windows\Temp\sonar.zip' -UseBasicParsing
+Expand-Archive 'C:\Windows\Temp\sonar.zip' -DestinationPath 'C:\Windows\Temp\sonarx' -Force
+if (Test-Path 'C:\Tools\sonar-scanner') { Remove-Item 'C:\Tools\sonar-scanner' -Recurse -Force }
+Move-Item (Get-ChildItem 'C:\Windows\Temp\sonarx' -Directory | Select-Object -First 1).FullName 'C:\Tools\sonar-scanner'
+
 Write-Host 'Updating machine PATH + DOTNET_ROOT...'
 $p = [Environment]::GetEnvironmentVariable('Path', 'Machine')
-$p = ($p.TrimEnd(';') + ';C:\Program Files\dotnet;C:\Program Files\Git\cmd;C:\Program Files\CMake\bin;C:\Program Files\Ninja;C:\Java\jdk17\bin;C:\go\bin;C:\Ruby33\bin;C:\Rust\bin')
+$p = ($p.TrimEnd(';') + ';C:\Program Files\dotnet;C:\Program Files\Git\cmd;C:\Program Files\CMake\bin;C:\Program Files\Ninja;C:\Java\jdk17\bin;C:\go\bin;C:\Ruby33\bin;C:\Rust\bin;C:\Tools\trivy;C:\Tools\dotnet-tools;C:\Tools\sonar-scanner\bin')
 [Environment]::SetEnvironmentVariable('Path', $p, 'Machine')
 [Environment]::SetEnvironmentVariable('DOTNET_ROOT', 'C:\Program Files\dotnet', 'Machine')
 
