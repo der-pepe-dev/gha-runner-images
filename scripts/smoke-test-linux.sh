@@ -14,6 +14,11 @@ have() { command -v "$1" >/dev/null 2>&1 || fail "$1 not found on PATH (whoami=$
 
 echo "smoke test as $(whoami)"
 
+# Run from a dir this account can read: the build invokes us from the provisioning user's
+# home, which the runner account can't enter — and Trivy tries to load ./trivy.yaml from CWD
+# (fails with EACCES on an inaccessible dir). A world-accessible dir avoids that.
+cd /tmp || exit 1
+
 # .NET SDK — also supplies the Roslyn analyzers (no separate analyzer package).
 have dotnet
 dotnet --info >/dev/null 2>&1 || fail "dotnet --info exited non-zero"
