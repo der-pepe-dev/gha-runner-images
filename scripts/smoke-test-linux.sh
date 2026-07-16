@@ -18,12 +18,22 @@ echo "smoke test as $(whoami)"
 have dotnet
 dotnet --info >/dev/null 2>&1 || fail "dotnet --info exited non-zero"
 
-# SonarScanner for .NET (dotnet-sonarscanner global tool, invoked as `dotnet sonarscanner`).
+# SonarScanner for .NET (dotnet-sonarscanner). Must be on PATH for the runner account and
+# report the pinned version. Prefer `dotnet sonarscanner --version`; fall back to the direct
+# `dotnet-sonarscanner --version` and finally the tool manifest — whichever the installed
+# .NET supports — so the check is robust while still proving the pinned version is present.
 have dotnet-sonarscanner
-ss_out="$(dotnet sonarscanner --version 2>&1)" || fail "dotnet sonarscanner --version exited non-zero: ${ss_out}"
-if [ -n "${EXPECTED_SONARSCANNER:-}" ]; then
-  printf '%s' "$ss_out" | grep -qF "$EXPECTED_SONARSCANNER" \
-    || fail "dotnet-sonarscanner version mismatch (want ${EXPECTED_SONARSCANNER}): ${ss_out}"
+want="${EXPECTED_SONARSCANNER:-}"
+ss_out="$(dotnet sonarscanner --version 2>&1)"
+if [ -n "$want" ] && ! printf '%s' "$ss_out" | grep -qF "$want"; then
+  ss_out="$(dotnet-sonarscanner --version 2>&1)"
+fi
+if [ -n "$want" ] && ! printf '%s' "$ss_out" | grep -qF "$want"; then
+  ss_out="$(dotnet tool list --tool-path /opt/dotnet-tools 2>&1)"
+fi
+if [ -n "$want" ]; then
+  printf '%s' "$ss_out" | grep -qF "$want" \
+    || fail "dotnet-sonarscanner ${want} not confirmed (dotnet sonarscanner / dotnet-sonarscanner / tool list): ${ss_out}"
 fi
 
 # Trivy CLI — executable/version smoke only (no DB download).

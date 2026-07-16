@@ -198,9 +198,13 @@ build {
       "sudo dotnet tool install --tool-path /opt/dotnet-tools --version ${var.dotnet_sonarscanner_version} dotnet-sonarscanner",
       # Generic SonarScanner CLI (non-.NET analysis; uses the baked JDK).
       "curl -fsSL -o /tmp/sonar.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${var.sonar_scanner_version}.zip && sudo unzip -q /tmp/sonar.zip -d /opt && sudo mv /opt/sonar-scanner-${var.sonar_scanner_version} /opt/sonar-scanner && rm -f /tmp/sonar.zip",
-      # Symlink onto /usr/local/bin so `trivy`, `dotnet sonarscanner` and `sonar-scanner`
-      # resolve for the gha-runner account with no profile init.
-      "sudo ln -sf /opt/dotnet-tools/dotnet-sonarscanner /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/",
+      # Wrapper scripts on /usr/local/bin (NOT symlinks) so `dotnet sonarscanner` and
+      # `sonar-scanner` exec from their REAL install dir — a symlinked .NET apphost / shell
+      # launcher resolves its DLLs/dir relative to the link and fails. `trivy` is already a
+      # real binary in /usr/local/bin. All resolve for the gha-runner account, no profile init.
+      "sudo chmod -R a+rX /opt/dotnet-tools /opt/sonar-scanner",
+      "printf '%s\\n' '#!/bin/sh' 'exec /opt/dotnet-tools/dotnet-sonarscanner \"$@\"' | sudo tee /usr/local/bin/dotnet-sonarscanner >/dev/null && sudo chmod 0755 /usr/local/bin/dotnet-sonarscanner",
+      "printf '%s\\n' '#!/bin/sh' 'exec /opt/sonar-scanner/bin/sonar-scanner \"$@\"' | sudo tee /usr/local/bin/sonar-scanner >/dev/null && sudo chmod 0755 /usr/local/bin/sonar-scanner",
       "dotnet --version && cmake --version | head -1 && java -version && go version && ruby --version && RUSTUP_HOME=/opt/rust CARGO_HOME=/opt/rust cargo --version && trivy --version | head -1 && sonar-scanner --version 2>&1 | grep -i version | head -1 && ${var.install_nodejs ? "node --version" : "true"}",
     ]
   }
