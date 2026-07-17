@@ -46,6 +46,14 @@ variable "runner_version" {
   default     = "2.335.1"
   description = "Pinned GitHub Actions runner version to bake into the image (unregistered)."
 }
+variable "runner_cores" {
+  default     = 4
+  description = "vCPU cores for the runner VM/slots. Also the template's clone default."
+}
+variable "runner_memory" {
+  default     = 8192
+  description = "RAM (MB) for the runner VM/slots. 8 GB fits the smallest node (pve2, 15.5 GB) and handles SonarScanner + a .NET build; route heavier scans to the NAS runner."
+}
 
 # CI toolchain baked into the image (ephemeral runners can't install per-job). Derived
 # from docs/consumers.md; extend here + record the consumer row in the same change.
@@ -99,9 +107,9 @@ source "proxmox-iso" "ubuntu_gha_core" {
   os       = "l26"
   machine  = "q35"
   cpu_type = var.cpu_type
-  cores    = 2
+  cores    = var.runner_cores
   sockets  = 1
-  memory   = 4096
+  memory   = var.runner_memory
 
   # Ubuntu has inbox virtio drivers, so virtio-scsi disk + virtio NIC + guest agent all
   # work with no driver injection (unlike Windows).
